@@ -1,11 +1,13 @@
 #
-# Contest 2026 team 000 board placeholder
+# contest_board (ESP32-P4 custom board)
+#
+# NOTE: For CONFIG_ARCH_BOARD_CUSTOM boards, NuttX sources boards/dummy/Kconfig
+# instead of this file, so board-specific Kconfig symbols are not added to the
+# configuration here. The board is selected and configured entirely through its
+# defconfig (CONFIG_ARCH_BOARD_CUSTOM_DIR / CONFIG_ARCH_CHIP_ESP32P4). This file
+# is kept for documentation and potential future in-tree use.
 #
 
-if ARCH_BOARD_CONTEST2026_000_BOARD
-
-config ARCH_BOARD_CONTEST2026_000_BOARD_TAG
-	string "Board tag"
-	default "contest2026_000_board"
+if ARCH_BOARD_CONTEST2026_288_BOARD
 
 endif

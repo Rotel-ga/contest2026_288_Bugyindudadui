@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0",
+  "team_id": "contest2026_288_Bugyindudadui",
+  "github_login": "Rotel-ga",
+  "generator": "claude-code-collector@1.2.0",
+  "sessions": [
+    {
+      "session_id": "daa60bcc-d184-46f3-bc5a-ba7226b5b3ae",
+      "tool": "claude-code",
+      "started_at": "2026-07-30T12:36:15.445Z",
+      "last_event_at": "2026-08-07T03:39:32.695Z",
+      "event_count": 288,
+      "raw_event_count": 388,
+      "file_path": "logs/Rotel-ga/2026-08-07/claude-code__daa60bcc-d184-46f3-bc5a-ba7226b5b3ae.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "a974de68-d033-4aa4-b61d-50f6b0fa2ef9",
+      "tool": "claude-code",
+      "started_at": "2026-07-29T06:08:00.682Z",
+      "last_event_at": "2026-08-07T03:39:32.731Z",
+      "event_count": 296,
+      "raw_event_count": 474,
+      "file_path": "logs/Rotel-ga/2026-08-07/claude-code__a974de68-d033-4aa4-b61d-50f6b0fa2ef9.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol",
+      "redacted_count_total": 1
+    },
+    {
+      "session_id": "42c0d942-9184-4db2-ab2e-a44607479dca",
+      "tool": "claude-code",
+      "started_at": "2026-07-31T09:26:53.064Z",
+      "last_event_at": "2026-07-31T09:27:11.586Z",
+      "event_count": 3,
+      "raw_event_count": 12,
+      "file_path": "logs/Rotel-ga/2026-07-31/claude-code__42c0d942-9184-4db2-ab2e-a44607479dca.jsonl",
+      "collection_mode": "cli",
+      "health": "ok"
+    },
+    {
+      "session_id": "40d09b39-d493-4d8c-b251-58059f41cc09",
+      "tool": "claude-code",
+      "started_at": "2026-07-31T13:23:24.498Z",
+      "last_event_at": "2026-07-31T19:26:10.073Z",
+      "event_count": 330,
+      "raw_event_count": 426,
+      "file_path": "logs/Rotel-ga/2026-07-31/claude-code__40d09b39-d493-4d8c-b251-58059f41cc09.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "aa37f845-49d9-46f8-b048-13329a566d08",
+      "tool": "claude-code",
+      "started_at": "2026-08-04T08:38:56.341Z",
+      "last_event_at": "2026-08-04T09:26:47.251Z",
+      "event_count": 51,
+      "raw_event_count": 81,
+      "file_path": "logs/Rotel-ga/2026-08-04/claude-code__aa37f845-49d9-46f8-b048-13329a566d08.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "a541ae1b-794b-477d-8ed6-ba41093e5a51",
+      "tool": "claude-code",
+      "started_at": "2026-08-04T09:21:59.226Z",
+      "last_event_at": "2026-08-07T03:39:32.688Z",
+      "event_count": 106,
+      "raw_event_count": 162,
+      "file_path": "logs/Rotel-ga/2026-08-07/claude-code__a541ae1b-794b-477d-8ed6-ba41093e5a51.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "ce0944a2-1705-489f-a1e9-121276104a8a",
+      "tool": "claude-code",
+      "started_at": "2026-08-04T10:07:18.986Z",
+      "last_event_at": "2026-08-09T04:10:49.458Z",
+      "event_count": 2,
+      "raw_event_count": 100,
+      "file_path": "logs/Rotel-ga/2026-08-09/claude-code__ce0944a2-1705-489f-a1e9-121276104a8a.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "7953ad71-be10-45c4-ab47-57a1fb3e3ba2",
+      "tool": "claude-code",
+      "started_at": "2026-08-05T12:48:17.555Z",
+      "last_event_at": "2026-08-06T06:19:15.780Z",
+      "event_count": 1,
+      "raw_event_count": 133,
+      "file_path": "logs/Rotel-ga/2026-08-06/claude-code__7953ad71-be10-45c4-ab47-57a1fb3e3ba2.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "eff71b92-4fb3-4ec7-99e8-821a34412a82",
+      "tool": "claude-code",
+      "started_at": "2026-08-06T12:15:56.832Z",
+      "last_event_at": "2026-08-07T10:52:10.187Z",
+      "event_count": 370,
+      "raw_event_count": 622,
+      "file_path": "logs/Rotel-ga/2026-08-07/claude-code__eff71b92-4fb3-4ec7-99e8-821a34412a82.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "4b1bb008-5038-4fd4-ac9e-bf59474f8dde",
+      "tool": "claude-code",
+      "started_at": "2026-08-07T02:49:38.078Z",
+      "last_event_at": "2026-08-08T02:26:20.507Z",
+      "event_count": 87,
+      "raw_event_count": 105,
+      "file_path": "logs/Rotel-ga/2026-08-07/claude-code__4b1bb008-5038-4fd4-ac9e-bf59474f8dde.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "b813e11e-276b-4416-8353-7c04e2f75145",
+      "tool": "claude-code",
+      "started_at": "2026-08-08T02:35:40.400Z",
+      "last_event_at": "2026-08-08T02:47:17.569Z",
+      "event_count": 58,
+      "raw_event_count": 86,
+      "file_path": "logs/Rotel-ga/2026-08-08/claude-code__b813e11e-276b-4416-8353-7c04e2f75145.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    },
+    {
+      "session_id": "fc964527-92f4-4c30-8b57-24513e9093be",
+      "tool": "claude-code",
+      "started_at": "2026-08-08T03:06:39.244Z",
+      "last_event_at": "2026-08-08T12:30:58.356Z",
+      "event_count": 254,
+      "raw_event_count": 354,
+      "file_path": "logs/Rotel-ga/2026-08-08/claude-code__fc964527-92f4-4c30-8b57-24513e9093be.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "pa/gpt-5.6-sol"
+    }
+  ],
+  "updated_at": "2026-08-09T04:10:49.458Z"
+}

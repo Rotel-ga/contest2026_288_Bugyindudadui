@@ -1,0 +1,50 @@
+#
+# ESP32-P4 out-of-tree custom chip (contest_board/chip).
+#
+# This file is copied to nuttx/arch/dummy/Kconfig at build time (tools/Unix.mk).
+# kconfiglib resolves `source` relative to $(srctree)=nuttx, so the espressif
+# and SoC Kconfig fragments are referenced through the vendor linkfile path.
+# nuttx/ itself is left untouched.
+#
+
+if ARCH_CHIP_CUSTOM
+
+config ARCH_CHIP_ESP32P4
+	bool
+	default y
+	select ARCH_RV32
+	select ARCH_RV_ISA_M
+	select ARCH_RV_ISA_A
+	select ARCH_RV_ISA_C
+	select ARCH_VECNOTIRQ
+	select ARCH_HAVE_MPU
+	select ARCH_HAVE_RESET
+	select ARCH_HAVE_RNG
+	select ARCH_HAVE_TICKLESS
+	select ARCH_HAVE_MULTICPU
+	select ARCH_HAVE_RAMFUNCS
+	select ARCH_MINIMAL_VECTORTABLE
+	select ONESHOT
+	select ONESHOT_COUNT
+	select ALARM_ARCH
+	select LIBC_ATOMIC_IRQ
+	select LIBC_ARCH_MEMCPY
+	select LIBC_ARCH_MEMCHR
+	select LIBC_ARCH_MEMCMP
+	select LIBC_ARCH_MEMMOVE
+	select LIBC_ARCH_MEMSET
+	select LIBC_ARCH_STRCHR
+	select LIBC_ARCH_STRCMP
+	select LIBC_ARCH_STRCPY
+	select LIBC_ARCH_STRLCPY
+	select LIBC_ARCH_STRNCPY
+	select LIBC_ARCH_STRLEN
+	select LIBC_ARCH_STRNLEN
+	---help---
+		Espressif ESP32-P4 (RV32IMAC), dual-core RISC-V. Out-of-tree custom
+		chip carried entirely within this contest board directory.
+
+source "../vendor/openvela/boards/contest2026_288_board/chip/espressif/Kconfig"
+source "../vendor/openvela/boards/contest2026_288_board/chip/esp32p4_soc.Kconfig"
+
+endif # ARCH_CHIP_CUSTOM
