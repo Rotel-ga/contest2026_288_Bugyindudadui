@@ -1,0 +1,31 @@
+diff --git a/nuttx/src/platform/os.c b/nuttx/src/platform/os.c
+index 99470d7e7c0..0d57e46bd48 100644
+--- a/nuttx/src/platform/os.c
++++ b/nuttx/src/platform/os.c
+@@ -13,6 +13,7 @@
+
+ #include <debug.h>
+ #include <errno.h>
++#include <fcntl.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <stdio.h>
+@@ -1335,9 +1336,15 @@ int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
+
+   tcb->flags = TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_FREE_TCB;
+
+-  ret = nxtask_init(tcb, name, priority,
+-                    NULL, stack_size,
+-                    task_wrapper_entry, argv, NULL, NULL);
++  posix_spawnattr_t attr;
++
++  posix_spawnattr_init(&attr);
++  posix_spawnattr_setstacksize(&attr, stack_size);
++  posix_spawnattr_setpriority(&attr, priority);
++
++  ret = nxtask_init(tcb, name, task_wrapper_entry, NULL, &attr,
++                    argv, NULL);
++  posix_spawnattr_destroy(&attr);
+   if (ret < 0)
+     {
+       kmm_free(wrapper_args);

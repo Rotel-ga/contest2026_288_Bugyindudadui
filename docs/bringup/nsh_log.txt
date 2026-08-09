@@ -1,0 +1,36 @@
+SH)
+nsh>
+nsh>
+nsh> NuttShell help
+nsh: NuttShell: command not found
+nsh> uname -a
+NuttX 0.0.0 dd92bcf4257 Aug  8 2026 14:14:06 risc-v contest2026_288_board
+nsh> free
+      total       used       free    maxused    maxfree  nused  nfree name
+     491656       6928     484728       7720     484296     31      2 Umem
+nsh> ps
+  PID GROUP PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK COMMAND
+    0     0   0 FIFO     Kthread   - Ready              0000000000000000 0002016 CPU0 IDLE
+    2     2 100 RR       Task      - Running            0000000000000000 0001984 nsh_main
+nsh> reboot
+reboot status=0
+
+[serial reconnect: device reports readiness to read but returned no data (device disconnected or multiple access on port?)]
+sh> uttShell (NSH)s
+--- clean help retry ---
+help
+help usage:  help [-v] [<cmd>]
+
+    .           cp          exit        ls          reboot      truncate
+    [           cmp         expr        mkdir       rm          uname
+    ?           dirname     false       mkrd        rmdir       umount
+    alias       dd          fdinfo      mount       set         unset
+    unalias     df          free        mv          sleep       uptime
+    basename    dmesg       help        pidof       source      usleep
+    break       echo        hexdump     printf      test        watch
+    cat         env         kill        ps          time        xd
+    cd          exec        pkill       pwd         true        wait
+
+Builtin Apps:
+    dumpstack    nsh          sh
+nsh>

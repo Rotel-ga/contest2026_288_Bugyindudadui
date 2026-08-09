@@ -1,0 +1,67 @@
+############################################################################
+# board/contest_board/scripts/Make.defs
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.  The
+# ASF licenses this file to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the
+# License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+###########################################################################
+
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
+include $(TOPDIR)/tools/espressif/Config.mk
+include $(TOPDIR)/arch/risc-v/src/common/Toolchain.defs
+
+# Remove quotes from CONFIG_ESPRESSIF_CHIP_SERIES configuration
+
+CHIP_SERIES = $(patsubst "%",%,$(CONFIG_ESPRESSIF_CHIP_SERIES))
+
+# ESP32-P4 board-level linker scripts (kept locally in this custom board).
+
+ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(CHIP_SERIES)_aliases.ld
+ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(CHIP_SERIES)_flat_memory.ld
+
+ifneq ($(CONFIG_ESP32P4_SELECTS_REV_LESS_V3),y)
+  BOARD_REV = .rev3
+endif
+
+ifeq ($(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT),y)
+  ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(CHIP_SERIES)_sections$(BOARD_REV).ld
+else ifeq ($(CONFIG_ESPRESSIF_SIMPLE_BOOT),y)
+  ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(CHIP_SERIES)_sections$(BOARD_REV).ld
+endif
+
+ARCHPICFLAGS = -fpic
+
+CFLAGS := $(ARCHCFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS) -Werror=return-type
+CPICFLAGS = $(ARCHPICFLAGS) $(CFLAGS)
+CXXFLAGS := $(ARCHCXXFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHXXINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
+CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
+CPPFLAGS := $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
+AFLAGS := $(CFLAGS) -D__ASSEMBLY__
+
+# Loadable module definitions
+
+LDMODULEFLAGS += -melf32lriscv
+
+# ELF module definitions
+
+LDELFFLAGS += -melf32lriscv
+
+# Note: 64-bit atomics used by esp-hal (e.g. __atomic_fetch_or_8 in
+# esp_gpio_reserve.c) are provided by NuttX's C implementation
+# (libs/libc/machine/arch_atomic.c), enabled via CONFIG_LIBC_ATOMIC_IRQ in the
+# defconfig, since the riscv-none-elf toolchain ships no libatomic.
