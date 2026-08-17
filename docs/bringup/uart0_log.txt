@@ -1,0 +1,65 @@
+ESP32-P4X-Function-EV-Board V1.6 物理 UART0（GPIO37/GPIO38）真机验收日志
+采集方式：FT232RL USB-UART（LEVEL SEL=3.3V）接 J1 第8脚GPIO37→RX、第10脚GPIO38→TX、第9脚GND→GND
+上位机：sudo picocom -b 115200 /dev/ttyUSB0
+配置：configs/uart0（CONFIG_UART0_SERIAL_CONSOLE=y）
+固件经 J20 烧录（0x2000），芯片 ESP32-P4 revision v3.2
+
+================ reboot 后完整开机日志（UART0 输出）================
+ESP-ROM:esp32p4-eco7-20260109
+Build:Jan  9 2026
+rst:0x1 (POWERON),boot:0x30f (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x30100000,len:0x44
+load:0x4ff40000,len:0x66cc
+SHA-256 comparison failed:
+Calculated: 44abb81ae5180748950f708a3a0013c91d03365420ca4a7f1febcfc081f57efc
+Expected: 00000000d0780000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4ff452fe
+*** Booting NuttX ***
+tcm: lma 0x00002020 vma 0x30100000 len 0x44     (68)
+dram: lma 0x0000206c vma 0x4ff40000 len 0x66cc   (26316)
+padd: lma 0x00008748 vma 0x00000000 len 0x78d0   (30928)
+imap: lma 0x00010020 vma 0x40020020 len 0x45a8   (17832)
+padd: lma 0x000145d0 vma 0x00000000 len 0xba28   (47656)
+imap: lma 0x00020000 vma 0x40000000 len 0x1a344  (107332)
+total segments stored 6
+
+NuttShell (NSH)
+nsh>
+
+================ 基础命令验证（UART0 输入/输出）================
+nsh> help
+help usage:  help [-v] [<cmd>]
+
+    .           cp          exit        ls          reboot      truncate
+    [           cmp         expr        mkdir       rm          uname
+    ?           dirname     false       mkrd        rmdir       umount
+    alias       dd          fdinfo      mount       set         unset
+    unalias     df          free        mv          sleep       uptime
+    basename    dmesg       help        pidof       source      usleep
+    break       echo        hexdump     printf      test        watch
+    cat         env         kill        ps          time        xd
+    cd          exec        pkill       pwd         true        wait
+
+Builtin Apps:
+    dumpstack    gpio         nsh          sh
+
+nsh> uname -a
+NuttX 0.0.0 dd92bcf4257 Aug 14 2026 18:49:58 risc-v contest2026_288_board
+
+nsh> free
+      total       used       free    maxused    maxfree  nused  nfree name
+     487848       6976     480872       7768     480440     32      2 Umem
+
+nsh> ps
+  PID GROUP PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK COMMAND
+    0     0   0 FIFO     Kthread   - Ready              0000000000000000 0002016 CPU0 IDLE
+    2     2 100 RR       Task      - Running            0000000000000000 0001984 nsh_main
+
+================ 结论 ================
+- 物理 UART0（GPIO37/GPIO38）可见完整启动 banner 与 NuttShell (NSH)，进入 nsh>  —— 达成
+- help / uname -a / free / ps 均正常执行  —— 达成
+- reboot 后 UART0 再次输出完整启动日志并进入 nsh>  —— 达成
+- J20 仍可用于烧录（本固件即经 J20 烧录）  —— 达成
+- 备注：minicom 默认开启硬件流控导致空白，改用 picocom（无流控）正常。
