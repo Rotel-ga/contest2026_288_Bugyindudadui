@@ -24,14 +24,18 @@ config ARCH_CHIP_ESP32P4
 	select ARCH_HAVE_MULTICPU
 	select ARCH_HAVE_RAMFUNCS
 	select ARCH_MINIMAL_VECTORTABLE
-	# NOTE (timer/tickless): match openvela's in-tree esp32c3/c6/h2 convention.
-	# Do NOT force-select ONESHOT or ALARM_ARCH. In tick mode (SCHED_TICKLESS=n)
-	# the OS tick comes from esp_timerisr.c (systimer periodic). Forcing
-	# ALARM_ARCH switched the timer arch to the alarm/oneshot path and broke the
-	# periodic tick, causing sleep()/usleep() to hang. ONESHOT_COUNT is still
-	# required here (independently of ONESHOT) because openvela's riscv_mtimer.c
-	# unconditionally uses the clkcnt oneshot ABI, which oneshot.h guards behind
-	# CONFIG_ONESHOT_COUNT.
+	# Timer/tick configuration (see docs/bringup/timer_log.txt):
+	#  - Do NOT select ALARM_ARCH: with SCHED_TICKLESS=n the OS tick must come
+	#    from esp_timerisr.c (systimer periodic). ALARM_ARCH switches the timer
+	#    arch to the alarm path and freezes the periodic tick (sleep/uptime hang).
+	#  - riscv_mtimer.c is always compiled and unconditionally uses the clkcnt
+	#    oneshot ABI, which oneshot.h guards behind CONFIG_ONESHOT_COUNT, so
+	#    ONESHOT_COUNT MUST be y or riscv_mtimer.c fails to build.
+	#  - ONESHOT_COUNT is declared under `if ONESHOT` in drivers/timers/Kconfig,
+	#    i.e. it depends on ONESHOT. Select BOTH to keep the dependency
+	#    consistent and avoid the "y-selected but ONESHOT=n" Kconfig warning that
+	#    fails olddefconfig. Still tick mode (no SCHED_TICKLESS, no ALARM_ARCH).
+	select ONESHOT
 	select ONESHOT_COUNT
 	select LIBC_ATOMIC_IRQ
 	select LIBC_ARCH_MEMCPY
