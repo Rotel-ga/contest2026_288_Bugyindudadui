@@ -34,3 +34,22 @@ nsh> ps
     2     2 100 RR       Task      - Running            0000000000000000 0001984 nsh_main
 nsh> uptime
 00:01:57 up  0:01, load average: 0.00, 0.00, 0.00
+nsh>
+nsh> time "sleep 1"
+
+1.0100 sec
+nsh> time "sleep 10"
+
+10.0100 sec
+nsh> time "sleep 1"
+
+1.0100 sec
+nsh> time "sleep 10"
+
+10.0100 sec
+nsh> time "sleep 1"
+
+1.0100 sec
+nsh> time "sleep 10"
+
+10.0100 sec
