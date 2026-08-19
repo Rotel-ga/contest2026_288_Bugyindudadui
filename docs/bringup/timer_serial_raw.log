@@ -1,0 +1,71 @@
+
+[HOST 2026-08-19 18:49:48] toggle RTS reset; capture across every USB re-enumeration
+ESP-ROM:esp32p4-eco7-20260109
+Build:Jan  9 2026
+rst:0x17 (CHIP_USB_UART_RESET),boot:0xf (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x30100000,len:0x44
+load:0x4ff40000,len:0x49b8
+load:0x4ff44a00,len:0xfac
+SHA-256 comparison failed:
+Calculated: 433839d05661c7f7d3faadebee2c5f6bc5665c5540f5eb5951b9ff96e6ba8288
+Expected: 0000000030860000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4ff446b6
+*** Booting NuttX ***
+tcm: lma 0x00002020 vma 0x30100000 len 0x44     (68)
+dram: lma 0x0000206c vma 0x4ff40000 len 0x49b8   (18872)
+dram: lma 0x00006a2c vma 0x4ff44a00 len 0xfac    (4012)
+padd: lma 0x000079e8 vma 0x00000000 len 0x8630   (34352)
+imap: lma 0x00010020 vma 0x40020020 len 0x45b0   (17840)
+padd: lma 0x000145d8 vma 0x00000000 len 0xba20   (47648)
+imap: lma 0x00020000 vma 0x40000000 len 0x19974  (104820)
+total segments stored 7
+
+[HOST 2026-08-19 18:49:50] serial disconnected (SerialException); wait for re-enumeration
+H)
+nsh>
+nsh>
+nsh> Nutt
+[HOST 2026-08-19 18:50:00] send: uptime
+uptime
+nsh: Nuttuptime: command not found
+nsh>
+nsh>
+[HOST 2026-08-19 18:50:03] send: time "sleep 1"
+time "sleep 1"
+
+1.0100 sec
+nsh>
+nsh>
+[HOST 2026-08-19 18:50:07] send: time "sleep 10"
+time "sleep 10"
+
+10.0100 sec
+nsh>
+nsh>
+[HOST 2026-08-19 18:50:20] send: time "usleep 500000"
+time "usleep 500000"
+
+0.5100 sec
+nsh>
+nsh>
+[HOST 2026-08-19 18:50:24] send: uptime
+uptime
+00:00:34 up  0:00, load average: 0.00, 0.00, 0.00
+nsh>
+nsh>
+[HOST 2026-08-19 18:50:27] send: reboot
+reboot
+reboot status=0
+
+[HOST 2026-08-19 18:50:28] serial disconnected (SerialException); wait for re-enumeration
+l (NSH)
+nsh>
+nsh>
+nsh> uttS
+[HOST 2026-08-19 18:50:39] send: uptime
+uptime
+nsh: uttSuptime: command not found
+nsh>
+nsh>

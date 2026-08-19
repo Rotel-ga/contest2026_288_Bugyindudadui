@@ -1,55 +1,86 @@
-nsh>                                                                                     |
+ESP32-P4 Timer Bring-up Validation
+
+Board: ESP32-P4X-Function-EV-Board V1.6
+Chip: ESP32-P4 revision v3.2
+Console: J20 USB-Serial/JTAG
+Device: /dev/ttyACM0
+Baud: 115200
+Official base: upstream/dev-ai-contest-2026 fe8a435
+PR #6 tip: 87e4f0fea36bd181a489b4d2c49f82a63476eceb
+Image: nuttx/nuttx.bin
+Image size: 227700 bytes
+Image SHA-256: 2769b3f549f75de362128ee742e697a58cf7be8b93fa5d35bba882a500324796
+ESP HAL: b90b1837cb5ad24747deb4c895246037cc206ce5
+Test date: 2026-08-19
+
+================ FLASH ================
+$ esptool --chip esp32p4 --port /dev/ttyACM0 --baud 921600 \
+    write-flash 0x2000 nuttx/nuttx.bin
+Chip type: ESP32-P4 (revision v3.2)
+USB mode: USB-Serial/JTAG
+Wrote 227700 bytes (94071 compressed) at 0x00002000.
+Verifying written data...
+Hash of data verified.
+Hard resetting via RTS pin...
+
+================ BOOT ================
+ESP-ROM:esp32p4-eco7-20260109
+Build:Jan  9 2026
+rst:0x17 (CHIP_USB_UART_RESET),boot:0xf (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x30100000,len:0x44
+load:0x4ff40000,len:0x49b8
+load:0x4ff44a00,len:0xfac
+SHA-256 comparison failed:
+Calculated: 433839d05661c7f7d3faadebee2c5f6bc5665c5540f5eb5951b9ff96e6ba8288
+Expected: 0000000030860000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4ff446b6
+*** Booting NuttX ***
+tcm: lma 0x00002020 vma 0x30100000 len 0x44     (68)
+dram: lma 0x0000206c vma 0x4ff40000 len 0x49b8   (18872)
+dram: lma 0x00006a2c vma 0x4ff44a00 len 0xfac    (4012)
+padd: lma 0x000079e8 vma 0x00000000 len 0x8630   (34352)
+imap: lma 0x00010020 vma 0x40020020 len 0x45b0   (17840)
+padd: lma 0x000145d8 vma 0x00000000 len 0xba20   (47648)
+imap: lma 0x00020000 vma 0x40000000 len 0x19974  (104820)
+total segments stored 7
+
+After USB-Serial/JTAG re-enumeration, the raw capture retained the trailing banner
+fragment "H)" and the `nsh>` prompt. It did not retain the complete
+`NuttShell (NSH)` line, so that line is not reconstructed here.
+
+================ TIMER ================
+nsh> time "sleep 1"
+1.0100 sec
+
+nsh> time "sleep 10"
+10.0100 sec
+
+nsh> time "usleep 500000"
+0.5100 sec
+
 nsh> uptime
-00:00:07 up  0:00, load average: 0.00, 0.00, 0.00
-nsh> uptime
-00:00:20 up  0:00, load average: 0.00, 0.00, 0.00
-nsh> sleep 1
-nsh> sleep 3
-nsh>uptime
-00:00:43 up  0:00, load average: 0.00, 0.00, 0.00
+00:00:34 up  0:00, load average: 0.00, 0.00, 0.00
+
+================ REBOOT ================
 nsh> reboot
 reboot status=0
 
-nsh> reboot
-reboot status=0
+The USB-Serial/JTAG device briefly disconnected and re-enumerated as /dev/ttyACM0.
+The capture program waited for the device to return. Residual boot-console bytes
+were cleared with Ctrl+C before the post-reboot command.
 
-nsh>
-nsh> reboot
-reboot status=0
+================ AFTER REBOOT ================
+NuttShell (NSH)
 
-nsh>
 nsh> uptime
-00:00:24 up  0:00, load average: 0.00, 0.00, 0.00
-nsh> uptime
-00:00:29 up  0:00, load average: 0.00, 0.00, 0.00
-nsh>
-nsh>
-nsh> ps
-  PID GROUP PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK COMMAND
-    0     0   0 FIFO     Kthread   - Ready              0000000000000000 0002016 CPU0 IDLE
-    2     2 100 RR       Task      - Running            0000000000000000 0001984 nsh_main
-nsh> ps
-  PID GROUP PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK COMMAND
-    0     0   0 FIFO     Kthread   - Ready              0000000000000000 0002016 CPU0 IDLE
-    2     2 100 RR       Task      - Running            0000000000000000 0001984 nsh_main
-nsh> uptime
-00:01:57 up  0:01, load average: 0.00, 0.00, 0.00
-nsh>
-nsh> time "sleep 1"
+00:00:41 up  0:00, load average: 0.00, 0.00
 
-1.0100 sec
-nsh> time "sleep 10"
-
-10.0100 sec
-nsh> time "sleep 1"
-
-1.0100 sec
-nsh> time "sleep 10"
-
-10.0100 sec
-nsh> time "sleep 1"
-
-1.0100 sec
-nsh> time "sleep 10"
-
-10.0100 sec
+================ LIMITATIONS ================
+- The ROM printed a SHA-256 comparison warning and continued booting; the exact
+  warning is retained above. The esptool write verification passed separately.
+- This test uses J20 USB-Serial/JTAG, not physical UART0 GPIO37/GPIO38.
+- Espressif OpenOCD reset/halt was not run in this acceptance pass.
+- No 10-cycle cold-start or 10-cycle reboot statistical matrix was performed.
+- Long-duration timer stability was not measured.
