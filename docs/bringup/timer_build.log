@@ -1,0 +1,592 @@
+LIBCLANG_PATH set to: /home/mi/openvela-contest/prebuilts/rust/linux/extra_libs
+including vendor/infineon/boards/aurix/build/vendorsetup.sh
+including vendor/infineon/boards/aurix_tc3/build/vendorsetup.sh
+including vendor/openvela/boards/build/vendorsetup.sh
+Build command line:
+  /home/mi/openvela-contest/nuttx/tools/configure.sh -e /home/mi/openvela-contest/vendor/openvela/boards/contest2026_288_board/configs/nsh
+  make -C /home/mi/openvela-contest/nuttx EXTRAFLAGS=-Wno-cpp -Wno-deprecated-declarations distclean
+  make -C /home/mi/openvela-contest/nuttx savedefconfig
+  Copy files
+  Select CONFIG_HOST_LINUX=y
+  Refreshing...
+CP: arch/dummy/Kconfig to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip/Kconfig
+CP: boards/dummy/Kconfig to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/Kconfig
+LN: platform/board to /home/mi/openvela-contest/apps/platform/dummy
+LN: include/arch to arch/risc-v/include
+LN: include/arch/board to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/include
+LN: drivers/platform to /home/mi/openvela-contest/nuttx/drivers/dummy
+LN: include/arch/chip to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip/include
+LN: arch/risc-v/src/chip to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip
+LN: arch/risc-v/src/board to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/src
+mkkconfig in /home/mi/openvela-contest/apps/audioutils
+mkkconfig in /home/mi/openvela-contest/apps/benchmarks
+mkkconfig in /home/mi/openvela-contest/apps/boot
+mkkconfig in /home/mi/openvela-contest/apps/canutils
+mkkconfig in /home/mi/openvela-contest/apps/crypto
+mkkconfig in /home/mi/openvela-contest/apps/database
+mkkconfig in /home/mi/openvela-contest/apps/examples/elf/tests
+mkkconfig in /home/mi/openvela-contest/apps/examples/elf
+mkkconfig in /home/mi/openvela-contest/apps/examples/mcuboot
+mkkconfig in /home/mi/openvela-contest/apps/examples/module
+mkkconfig in /home/mi/openvela-contest/apps/examples/rust
+mkkconfig in /home/mi/openvela-contest/apps/examples/sotest
+mkkconfig in /home/mi/openvela-contest/apps/examples
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native/cmds
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native/services
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks
+mkkconfig in /home/mi/openvela-contest/external/android/hardware
+mkkconfig in /home/mi/openvela-contest/external/android/system/core
+mkkconfig in /home/mi/openvela-contest/external/android/system
+mkkconfig in /home/mi/openvela-contest/external/android
+mkkconfig in /home/mi/openvela-contest/external/optee
+mkkconfig in /home/mi/openvela-contest/external
+mkkconfig in /home/mi/openvela-contest/frameworks/connectivity
+mkkconfig in /home/mi/openvela-contest/frameworks/graphics
+mkkconfig in /home/mi/openvela-contest/frameworks/multimedia
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/services/xmsdemo
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/services
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/typescript
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/wasm
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes
+mkkconfig in /home/mi/openvela-contest/frameworks/security/ca
+mkkconfig in /home/mi/openvela-contest/frameworks/security/ta
+mkkconfig in /home/mi/openvela-contest/frameworks/security/tools
+mkkconfig in /home/mi/openvela-contest/frameworks/security
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/cmds
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/examples
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/performance
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder
+mkkconfig in /home/mi/openvela-contest/frameworks/system
+mkkconfig in /home/mi/openvela-contest/frameworks
+mkkconfig in /home/mi/openvela-contest/apps/fsutils
+mkkconfig in /home/mi/openvela-contest/apps/games
+mkkconfig in /home/mi/openvela-contest/apps/graphics
+mkkconfig in /home/mi/openvela-contest/apps/industry
+mkkconfig in /home/mi/openvela-contest/apps/inertial
+mkkconfig in /home/mi/openvela-contest/apps/interpreters/luamodules
+mkkconfig in /home/mi/openvela-contest/apps/interpreters
+mkkconfig in /home/mi/openvela-contest/apps/logging
+mkkconfig in /home/mi/openvela-contest/apps/lte
+mkkconfig in /home/mi/openvela-contest/apps/math
+mkkconfig in /home/mi/openvela-contest/apps/mlearning
+mkkconfig in /home/mi/openvela-contest/apps/netutils
+mkkconfig in /home/mi/openvela-contest/packages/demos
+mkkconfig in /home/mi/openvela-contest/packages
+mkkconfig in /home/mi/openvela-contest/apps/sdr
+mkkconfig in /home/mi/openvela-contest/apps/system
+mkkconfig in /home/mi/openvela-contest/apps/testing/arch
+mkkconfig in /home/mi/openvela-contest/apps/testing/crypto
+mkkconfig in /home/mi/openvela-contest/apps/testing/cxx
+mkkconfig in /home/mi/openvela-contest/apps/testing/drivers
+mkkconfig in /home/mi/openvela-contest/apps/testing/fs
+mkkconfig in /home/mi/openvela-contest/apps/testing/libc
+mkkconfig in /home/mi/openvela-contest/apps/testing/mm
+mkkconfig in /home/mi/openvela-contest/apps/testing/sched
+mkkconfig in /home/mi/openvela-contest/apps/testing
+mkkconfig in /home/mi/openvela-contest/tests
+mkkconfig in /home/mi/openvela-contest/vendor/allwinnertech/apps
+mkkconfig in /home/mi/openvela-contest/vendor/allwinnertech
+mkkconfig in /home/mi/openvela-contest/vendor/artinchip/apps
+mkkconfig in /home/mi/openvela-contest/vendor/artinchip
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi/vela/pyxis
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi/vela
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi
+mkkconfig in /home/mi/openvela-contest/vendor
+mkkconfig in /home/mi/openvela-contest/apps/videoutils
+mkkconfig in /home/mi/openvela-contest/apps/wireless/bluetooth
+mkkconfig in /home/mi/openvela-contest/apps/wireless/ieee802154
+mkkconfig in /home/mi/openvela-contest/apps/wireless
+mkkconfig in /home/mi/openvela-contest/apps
+Loaded configuration '.config'
+Configuration saved to '.config'
+make: 进入目录“/home/mi/openvela-contest/nuttx”
+make: 离开目录“/home/mi/openvela-contest/nuttx”
+正克隆到 '/tmp/contest-pr6-takeover/board/contest_board/chip/esp-hal-3rdparty'...
+HEAD 目前位于 b90b1837cb5 nuttx: ensure OS's critical section performs an atomic operation
+error: 打补丁失败：nuttx/src/platform/os.c:13
+error: nuttx/src/platform/os.c：补丁未应用
+applied esp-hal compatibility patch
+esp-hal-3rdparty ready at b90b1837cb5ad24747deb4c895246037cc206ce5
+子模组 'components/mbedtls/mbedtls'（https://github.com/espressif/mbedtls.git）已对路径 'components/mbedtls/mbedtls' 注册
+正克隆到 '/tmp/contest-pr6-takeover/board/contest_board/chip/esp-hal-3rdparty/components/mbedtls/mbedtls'...
+子模组路径 'components/mbedtls/mbedtls'：检出 '582ff482038db6e4010dbf6f943d97b05ad06ea5'
+LIBCLANG_PATH set to: /home/mi/openvela-contest/prebuilts/rust/linux/extra_libs
+including vendor/infineon/boards/aurix/build/vendorsetup.sh
+including vendor/infineon/boards/aurix_tc3/build/vendorsetup.sh
+including vendor/openvela/boards/build/vendorsetup.sh
+Build command line:
+  /home/mi/openvela-contest/nuttx/tools/configure.sh -e /home/mi/openvela-contest/vendor/openvela/boards/contest2026_288_board/configs/nsh
+  make -C /home/mi/openvela-contest/nuttx EXTRAFLAGS=-Wno-cpp -Wno-deprecated-declarations
+  make -C /home/mi/openvela-contest/nuttx savedefconfig
+  Copy files
+  Select CONFIG_HOST_LINUX=y
+  Refreshing...
+CP: arch/dummy/Kconfig to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip/Kconfig
+CP: boards/dummy/Kconfig to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/Kconfig
+LN: platform/board to /home/mi/openvela-contest/apps/platform/dummy
+LN: include/arch to arch/risc-v/include
+LN: include/arch/board to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/include
+LN: drivers/platform to /home/mi/openvela-contest/nuttx/drivers/dummy
+LN: include/arch/chip to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip/include
+LN: arch/risc-v/src/chip to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/chip
+LN: arch/risc-v/src/board to /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/src
+mkkconfig in /home/mi/openvela-contest/apps/audioutils
+mkkconfig in /home/mi/openvela-contest/apps/benchmarks
+mkkconfig in /home/mi/openvela-contest/apps/boot
+mkkconfig in /home/mi/openvela-contest/apps/canutils
+mkkconfig in /home/mi/openvela-contest/apps/crypto
+mkkconfig in /home/mi/openvela-contest/apps/database
+mkkconfig in /home/mi/openvela-contest/apps/examples/elf/tests
+mkkconfig in /home/mi/openvela-contest/apps/examples/elf
+mkkconfig in /home/mi/openvela-contest/apps/examples/mcuboot
+mkkconfig in /home/mi/openvela-contest/apps/examples/module
+mkkconfig in /home/mi/openvela-contest/apps/examples/rust
+mkkconfig in /home/mi/openvela-contest/apps/examples/sotest
+mkkconfig in /home/mi/openvela-contest/apps/examples
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native/cmds
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native/services
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks/native
+mkkconfig in /home/mi/openvela-contest/external/android/frameworks
+mkkconfig in /home/mi/openvela-contest/external/android/hardware
+mkkconfig in /home/mi/openvela-contest/external/android/system/core
+mkkconfig in /home/mi/openvela-contest/external/android/system
+mkkconfig in /home/mi/openvela-contest/external/android
+mkkconfig in /home/mi/openvela-contest/external/optee
+mkkconfig in /home/mi/openvela-contest/external
+mkkconfig in /home/mi/openvela-contest/frameworks/connectivity
+mkkconfig in /home/mi/openvela-contest/frameworks/graphics
+mkkconfig in /home/mi/openvela-contest/frameworks/multimedia
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/services/xmsdemo
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/services
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/typescript
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes/wasm
+mkkconfig in /home/mi/openvela-contest/frameworks/runtimes
+mkkconfig in /home/mi/openvela-contest/frameworks/security/ca
+mkkconfig in /home/mi/openvela-contest/frameworks/security/ta
+mkkconfig in /home/mi/openvela-contest/frameworks/security/tools
+mkkconfig in /home/mi/openvela-contest/frameworks/security
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/cmds
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/examples
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder/performance
+mkkconfig in /home/mi/openvela-contest/frameworks/system/binder
+mkkconfig in /home/mi/openvela-contest/frameworks/system
+mkkconfig in /home/mi/openvela-contest/frameworks
+mkkconfig in /home/mi/openvela-contest/apps/fsutils
+mkkconfig in /home/mi/openvela-contest/apps/games
+mkkconfig in /home/mi/openvela-contest/apps/graphics
+mkkconfig in /home/mi/openvela-contest/apps/industry
+mkkconfig in /home/mi/openvela-contest/apps/inertial
+mkkconfig in /home/mi/openvela-contest/apps/interpreters/luamodules
+mkkconfig in /home/mi/openvela-contest/apps/interpreters
+mkkconfig in /home/mi/openvela-contest/apps/logging
+mkkconfig in /home/mi/openvela-contest/apps/lte
+mkkconfig in /home/mi/openvela-contest/apps/math
+mkkconfig in /home/mi/openvela-contest/apps/mlearning
+mkkconfig in /home/mi/openvela-contest/apps/netutils
+mkkconfig in /home/mi/openvela-contest/packages/demos
+mkkconfig in /home/mi/openvela-contest/packages
+mkkconfig in /home/mi/openvela-contest/apps/sdr
+mkkconfig in /home/mi/openvela-contest/apps/system
+mkkconfig in /home/mi/openvela-contest/apps/testing/arch
+mkkconfig in /home/mi/openvela-contest/apps/testing/crypto
+mkkconfig in /home/mi/openvela-contest/apps/testing/cxx
+mkkconfig in /home/mi/openvela-contest/apps/testing/drivers
+mkkconfig in /home/mi/openvela-contest/apps/testing/fs
+mkkconfig in /home/mi/openvela-contest/apps/testing/libc
+mkkconfig in /home/mi/openvela-contest/apps/testing/mm
+mkkconfig in /home/mi/openvela-contest/apps/testing/sched
+mkkconfig in /home/mi/openvela-contest/apps/testing
+mkkconfig in /home/mi/openvela-contest/tests
+mkkconfig in /home/mi/openvela-contest/vendor/allwinnertech/apps
+mkkconfig in /home/mi/openvela-contest/vendor/allwinnertech
+mkkconfig in /home/mi/openvela-contest/vendor/artinchip/apps
+mkkconfig in /home/mi/openvela-contest/vendor/artinchip
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi/vela/pyxis
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi/vela
+mkkconfig in /home/mi/openvela-contest/vendor/xiaomi
+mkkconfig in /home/mi/openvela-contest/vendor
+mkkconfig in /home/mi/openvela-contest/apps/videoutils
+mkkconfig in /home/mi/openvela-contest/apps/wireless/bluetooth
+mkkconfig in /home/mi/openvela-contest/apps/wireless/ieee802154
+mkkconfig in /home/mi/openvela-contest/apps/wireless
+mkkconfig in /home/mi/openvela-contest/apps
+Loaded configuration '.config'
+Configuration saved to '.config'
+make: 进入目录“/home/mi/openvela-contest/nuttx”
+Create version.h
+LN: platform/board to /home/mi/openvela-contest/apps/platform/dummy
+Register: gpio
+Register: dumpstack
+Register: nsh
+Register: sh
+Generating unified Rust library from registered crates...
+No valid Rust crates found to build
+CC:  clock/clock.c CC:  clock/clock_initialize.c CC:  clock/clock_settime.c CC:  clock/clock_gettime.c CC:  clock/clock_systime_ticks.c CC:  clock/clock_systime_timespec.c CC:  clock/clock_perf.c CC:  clock/clock_realtime2absticks.c CC:  clock/clock_getres.c CC:  clock/clock_notifier.c CC:  group/group_create.c CC:  group/group_join.c CC:  group/group_leave.c CC:  group/group_setupidlefiles.c CC:  group/group_setuptaskfiles.c CC:  group/group_foreachchild.c CC:  group/group_killchildren.c CC:  group/group_signal.c CC:  init/nx_start.c CC:  init/nx_bringup.c CC:  instrument/instrument.c CC:  irq/irq_initialize.c CC:  irq/irq_attach.c CC:  irq/irq_dispatch.c CC:  irq/irq_unexpectedisr.c CC:  irq/irq_attach_thread.c CC:  irq/irq_attach_wqueue.c CC:  irq/irq_csection.c CC:  misc/assert.c CC:  misc/panic_notifier.c CC:  misc/reboot_notifier.c CC:  mqueue/mq_initialize.c CC:  mqueue/mq_waitirq.c CC:  mqueue/mq_recover.c CC:  mqueue/mq_send.c CC:  mqueue/mq_sndinternal.c CC:  mqueue/mq_receive.c CC:  mqueue/mq_rcvinternal.c CC:  mqueue/mq_getattr.c CC:  mqueue/mq_msgfree.c CC:  mqueue/mq_msgqalloc.c CC:  mqueue/mq_msgqfree.c CC:  mqueue/mq_setattr.c CC:  mqueue/mq_notify.c CC:  mqueue/msgctl.c CC:  mqueue/msgget.c CC:  mqueue/msginternal.c CC:  mqueue/msgrcv.c CC:  mqueue/msgsnd.c CC:  pthread/pthread_create.c CC:  pthread/pthread_exit.c CC:  pthread/pthread_join.c CC:  pthread/pthread_detach.c CC:  pthread/pthread_getschedparam.c CC:  pthread/pthread_setschedparam.c CC:  pthread/pthread_sigmask.c CC:  pthread/pthread_cancel.c CC:  pthread/pthread_completejoin.c CC:  pthread/pthread_findjoininfo.c CC:  pthread/pthread_release.c CC:  pthread/pthread_setschedprio.c CC:  sched/sched_getfiles.c CC:  sched/sched_profil.c CC:  sched/sched_addreadytorun.c CC:  sched/sched_removereadytorun.c CC:  sched/sched_addblocked.c CC:  sched/sched_removeblocked.c CC:  sched/sched_gettcb.c CC:  sched/sched_verifytcb.c CC:  sched/sched_releasetcb.c CC:  sched/sched_setparam.c CC:  sched/sched_setpriority.c CC:  sched/sched_getparam.c CC:  sched/sched_setscheduler.c CC:  sched/sched_getscheduler.c CC:  sched/sched_yield.c CC:  sched/sched_rrgetinterval.c CC:  sched/sched_foreach.c CC:  sched/sched_lock.c CC:  sched/sched_unlock.c CC:  sched/sched_lockcount.c CC:  sched/sched_idletask.c CC:  sched/sched_self.c CC:  sched/sched_get_stackinfo.c CC:  sched/sched_get_tls.c CC:  sched/sched_sysinfo.c CC:  sched/sched_get_stateinfo.c CC:  sched/sched_getcpu.c CC:  sched/sched_switchcontext.c CC:  sched/sched_reprioritizertr.c CC:  sched/sched_mergepending.c CC:  sched/sched_waitpid.c CC:  sched/sched_roundrobin.c CC:  sched/sched_processtimer.c CC:  sched/sched_backtrace.c CC:  semaphore/sem_destroy.c CC:  semaphore/sem_wait.c CC:  semaphore/sem_trywait.c CC:  semaphore/sem_clockwait.c CC:  semaphore/sem_tickwait.c CC:  semaphore/sem_timeout.c CC:  semaphore/sem_post.c CC:  semaphore/sem_recover.c CC:  semaphore/sem_reset.c CC:  semaphore/sem_waitirq.c CC:  semaphore/sem_rw.c CC:  signal/sig_action.c CC:  signal/sig_allocpendingsigaction.c CC:  signal/sig_cleanup.c CC:  signal/sig_deliver.c CC:  signal/sig_findaction.c CC:  signal/sig_initialize.c CC:  signal/sig_pending.c CC:  signal/sig_releasependingsigaction.c CC:  signal/sig_releasependingsignal.c CC:  signal/sig_removependingsignal.c CC:  signal/sig_unmaskpendingsignal.c CC:  signal/sig_dispatch.c CC:  signal/sig_kill.c CC:  signal/sig_lowest.c CC:  signal/sig_nanosleep.c CC:  signal/sig_notification.c CC:  signal/sig_pause.c CC:  signal/sig_ppoll.c CC:  signal/sig_procmask.c CC:  signal/sig_pselect.c CC:  signal/sig_queue.c CC:  signal/sig_sleep.c CC:  signal/sig_suspend.c CC:  signal/sig_tgkill.c CC:  signal/sig_timedwait.c CC:  signal/sig_usleep.c CC:  signal/sig_waitinfo.c CC:  task/task_argvstr.c CC:  task/task_create.c CC:  task/task_init.c CC:  task/task_setup.c CC:  task/task_activate.c CC:  task/task_start.c CC:  task/task_delete.c CC:  task/task_exit.c CC:  task/task_exithook.c CC:  task/task_prctl.c CC:  task/task_recover.c CC:  task/task_restart.c CC:  task/task_spawnparms.c CC:  task/task_cancelpt.c CC:  task/task_terminate.c CC:  task/exit.c CC:  task/task_join.c CC:  task/task_fork.c CC:  task/task_spawn.c CC:  timer/timer_initialize.c CC:  timer/timer_create.c CC:  timer/timer_delete.c CC:  timer/timer_getoverrun.c CC:  timer/timer_getitimer.c CC:  timer/timer_gettime.c CC:  timer/timer_setitimer.c CC:  timer/timer_settime.c CC:  timer/timer_release.c CC:  tls/task_initinfo.c CC:  tls/task_uninitinfo.c CC:  tls/tls_initinfo.c CC:  tls/tls_dupinfo.c CC:  wdog/wd_initialize.c CC:  wdog/wd_start.c CC:  wdog/wd_cancel.c CC:  wdog/wd_gettime.c IN: sched/libsched.a -> staging/libsched.a CC:  drivers_initialize.c CC:  ioexpander/gpio.c CC:  loop/losetup.c CC:  misc/dev_null.c CC:  misc/dev_zero.c CC:  misc/ramdisk.c CC:  misc/mkrd.c CC:  pipes/pipe.c CC:  pipes/fifo.c CC:  pipes/pipe_common.c CC:  serial/serial.c CC:  serial/serial_io.c CC:  syslog/syslog_initialize.c CC:  syslog/setlogmask.c CC:  syslog/vsyslog.c CC:  syslog/syslog_channel.c CC:  syslog/syslog_write.c CC:  syslog/syslog_flush.c CC:  timers/oneshot.c IN: drivers/libdrivers.a -> staging/libdrivers.a CC:  dummy.c CC:  boardctl.c IN: boards/libboards.a -> staging/libboards.a CC:  assert/lib_assert.c CC:  assert/lib_stackchk.c CC:  builtin/lib_builtin_getname.c CC:  builtin/lib_builtin_isavail.c CC:  builtin/lib_builtin_forindex.c CC:  ctype/lib_isalnum.c CC:  ctype/lib_isalpha.c CC:  ctype/lib_isascii.c CC:  ctype/lib_isblank.c CC:  ctype/lib_iscntrl.c CC:  ctype/lib_isdigit.c CC:  ctype/lib_isgraph.c CC:  ctype/lib_islower.c CC:  ctype/lib_isprint.c CC:  ctype/lib_ispunct.c CC:  ctype/lib_isspace.c CC:  ctype/lib_isupper.c CC:  ctype/lib_isxdigit.c CC:  ctype/lib_tolower.c CC:  ctype/lib_toupper.c CC:  ctype/lib_ctype.c CC:  dirent/lib_readdirr.c CC:  dirent/lib_telldir.c CC:  dirent/lib_alphasort.c CC:  dirent/lib_scandir.c CC:  dirent/lib_ftw.c CC:  dirent/lib_nftw.c CC:  dirent/lib_opendir.c CC:  dirent/lib_fdopendir.c CC:  dirent/lib_closedir.c CC:  dirent/lib_readdir.c CC:  dirent/lib_rewinddir.c CC:  dirent/lib_seekdir.c CC:  dirent/lib_dirfd.c CC:  dirent/lib_versionsort.c CC:  dlfcn/lib_dlfind_object.c CC:  environ/env_getenvironptr.c CC:  environ/env_dup.c CC:  environ/env_release.c CC:  environ/env_findvar.c CC:  environ/env_removevar.c CC:  environ/env_clearenv.c CC:  environ/env_getenv.c CC:  environ/env_putenv.c CC:  environ/env_setenv.c CC:  environ/env_unsetenv.c CC:  environ/env_foreach.c CC:  errno/lib_errno.c CC:  fixedmath/lib_fixedmath.c CC:  fixedmath/lib_b16sin.c CC:  fixedmath/lib_b16cos.c CC:  fixedmath/lib_b16atan2.c CC:  fixedmath/lib_ubsqrt.c CC:  grp/lib_getgrgid.c CC:  grp/lib_getgrgidr.c CC:  grp/lib_getgrnam.c CC:  grp/lib_getgrnamr.c CC:  grp/lib_initgroups.c CC:  grp/lib_getgrbuf.c CC:  grp/lib_getgrbufr.c CC:  inttypes/lib_imaxabs.c CC:  inttypes/lib_imaxdiv.c CC:  inttypes/lib_strtoimax.c CC:  inttypes/lib_strtoumax.c CC:  libgen/lib_basename.c CC:  libgen/lib_dirname.c CC:  machine/arch_atomic.c CC:  misc/lib_bitmap.c CC:  misc/lib_circbuf.c CC:  misc/lib_creat.c CC:  misc/lib_mknod.c CC:  misc/lib_umask.c CC:  misc/lib_utsname.c CC:  misc/lib_getrandom.c CC:  misc/lib_xorshift128.c CC:  misc/lib_tea_encrypt.c CC:  misc/lib_tea_decrypt.c CC:  misc/lib_cxx_initialize.c CC:  misc/lib_impure.c CC:  misc/lib_memfd.c CC:  misc/lib_fchmodat.c CC:  misc/lib_fstatat.c CC:  misc/lib_getfullpath.c CC:  misc/lib_openat.c CC:  misc/lib_mkdirat.c CC:  misc/lib_utimensat.c CC:  misc/lib_mallopt.c CC:  misc/lib_idr.c CC:  misc/lib_getnprocs.c CC:  misc/lib_ratelimit.c CC:  misc/lib_lrucache.c CC:  misc/lib_sem_mutex_noinline.c CC:  misc/lib_tempbuffer.c CC:  misc/lib_umul32.c CC:  misc/lib_umul64.c CC:  misc/lib_umul32x64.c CC:  misc/lib_uadd32x64.c CC:  misc/lib_uadd64.c CC:  misc/lib_usub64x32.c CC:  misc/lib_usub64.c CC:  misc/lib_dumpbuffer.c CC:  misc/lib_dumpvbuffer.c CC:  misc/lib_fnmatch.c CC:  misc/lib_debug.c CC:  misc/lib_crc64.c CC:  misc/lib_crc32.c CC:  misc/lib_crc16.c CC:  misc/lib_crc16ccitt.c CC:  misc/lib_crc8.c CC:  misc/lib_crc8ccitt.c CC:  misc/lib_crc8table.c CC:  misc/lib_crc8rohc.c CC:  misc/lib_crc8h1d.c CC:  misc/lib_crc8h2f.c CC:  misc/lib_crc16h1021.c CC:  misc/lib_crc16h8005.c CC:  misc/lib_crc32h04c11db7.c CC:  misc/lib_crc32hf4acfb13.c CC:  misc/lib_crc64emac.c CC:  misc/lib_backtrace.c CC:  misc/lib_ftok.c CC:  misc/lib_err.c CC:  misc/lib_instrument.c CC:  misc/lib_glob.c CC:  misc/lib_fdcheck.c CC:  net/lib_addrconfig.c CC:  net/lib_base64.c CC:  net/lib_htons.c CC:  net/lib_htonl.c CC:  net/lib_htonq.c CC:  net/lib_inetaddr.c CC:  net/lib_inetaton.c CC:  net/lib_inetntoa.c CC:  net/lib_inetntop.c CC:  net/lib_inetpton.c CC:  net/lib_inetnetwork.c CC:  obstack/lib_obstack_init.c CC:  obstack/lib_obstack_alloc.c CC:  obstack/lib_obstack_copy.c CC:  obstack/lib_obstack_free.c CC:  obstack/lib_obstack_make_room.c CC:  obstack/lib_obstack_blank.c CC:  obstack/lib_obstack_grow.c CC:  obstack/lib_obstack_finish.c CC:  obstack/lib_obstack_object_size.c CC:  obstack/lib_obstack_room.c CC:  obstack/lib_obstack_printf.c CC:  obstack/lib_obstack_vprintf.c CC:  obstack/lib_obstack_malloc.c CC:  pthread/pthread_attr_init.c CC:  pthread/pthread_attr_destroy.c CC:  pthread/pthread_attr_setschedpolicy.c CC:  pthread/pthread_attr_getschedpolicy.c CC:  pthread/pthread_attr_setinheritsched.c CC:  pthread/pthread_attr_getinheritsched.c CC:  pthread/pthread_attr_setdetachstate.c CC:  pthread/pthread_attr_getdetachstate.c CC:  pthread/pthread_attr_setstackaddr.c CC:  pthread/pthread_attr_getstackaddr.c CC:  pthread/pthread_attr_setstacksize.c CC:  pthread/pthread_attr_getstacksize.c CC:  pthread/pthread_attr_setstack.c CC:  pthread/pthread_attr_getstack.c CC:  pthread/pthread_attr_setschedparam.c CC:  pthread/pthread_attr_getschedparam.c CC:  pthread/pthread_attr_setscope.c CC:  pthread/pthread_attr_getscope.c CC:  pthread/pthread_attr_setguardsize.c CC:  pthread/pthread_attr_getguardsize.c CC:  pthread/pthread_barrierattr_init.c CC:  pthread/pthread_barrierattr_destroy.c CC:  pthread/pthread_barrierattr_getpshared.c CC:  pthread/pthread_barrierattr_setpshared.c CC:  pthread/pthread_barrierinit.c CC:  pthread/pthread_barrierdestroy.c CC:  pthread/pthread_barrierwait.c CC:  pthread/pthread_condattr_init.c CC:  pthread/pthread_condattr_destroy.c CC:  pthread/pthread_condattr_getpshared.c CC:  pthread/pthread_condattr_setpshared.c CC:  pthread/pthread_condattr_setclock.c CC:  pthread/pthread_condattr_getclock.c CC:  pthread/pthread_condinit.c CC:  pthread/pthread_conddestroy.c CC:  pthread/pthread_condtimedwait.c CC:  pthread/pthread_condbroadcast.c CC:  pthread/pthread_condclockwait.c CC:  pthread/pthread_condsignal.c CC:  pthread/pthread_condwait.c CC:  pthread/pthread_create.c CC:  pthread/pthread_equal.c CC:  pthread/pthread_exit.c CC:  pthread/pthread_kill.c CC:  pthread/pthread_setname_np.c CC:  pthread/pthread_getname_np.c CC:  pthread/pthread_get_stackaddr_np.c CC:  pthread/pthread_get_stacksize_np.c CC:  pthread/pthread_mutexattr_init.c CC:  pthread/pthread_mutexattr_destroy.c CC:  pthread/pthread_mutexattr_getpshared.c CC:  pthread/pthread_mutexattr_setpshared.c CC:  pthread/pthread_mutexattr_setprotocol.c CC:  pthread/pthread_mutexattr_getprotocol.c CC:  pthread/pthread_mutexattr_settype.c CC:  pthread/pthread_mutexattr_gettype.c CC:  pthread/pthread_mutexattr_setrobust.c CC:  pthread/pthread_mutexattr_getrobust.c CC:  pthread/pthread_mutexattr_setprioceiling.c CC:  pthread/pthread_mutexattr_getprioceiling.c CC:  pthread/pthread_mutex_destroy.c CC:  pthread/pthread_mutex_init.c CC:  pthread/pthread_mutex_trylock.c CC:  pthread/pthread_mutex_timedlock.c CC:  pthread/pthread_mutex.c CC:  pthread/pthread_mutex_unlock.c CC:  pthread/pthread_mutex_lock.c CC:  pthread/pthread_mutex_setprioceiling.c CC:  pthread/pthread_mutex_getprioceiling.c CC:  pthread/pthread_once.c CC:  pthread/pthread_yield.c CC:  pthread/pthread_atfork.c CC:  pthread/pthread_rwlockattr_init.c CC:  pthread/pthread_rwlockattr_destroy.c CC:  pthread/pthread_rwlockattr_getpshared.c CC:  pthread/pthread_rwlockattr_setpshared.c CC:  pthread/pthread_rwlock.c CC:  pthread/pthread_rwlock_rdlock.c CC:  pthread/pthread_rwlock_wrlock.c CC:  pthread/pthread_setcancelstate.c CC:  pthread/pthread_setcanceltype.c CC:  pthread/pthread_testcancel.c CC:  pthread/pthread_getcpuclockid.c CC:  pthread/pthread_self.c CC:  pthread/pthread_gettid_np.c CC:  pthread/pthread_concurrency.c CC:  pthread/pthread_mutex_consistent.c CC:  pthread/pthread_mutex_inconsistent.c CC:  pwd/lib_getpwnam.c CC:  pwd/lib_getpwnamr.c CC:  pwd/lib_getpwuid.c CC:  pwd/lib_getpwuidr.c CC:  pwd/lib_getpwent.c CC:  pwd/lib_getspnam.c CC:  pwd/lib_getpwbuf.c CC:  pwd/lib_getpwbufr.c CC:  queue/queue.c CC:  sched/sched_getprioritymax.c CC:  sched/sched_getprioritymin.c CC:  sched/clock_getcpuclockid.c CC:  sched/task_cancelpt.c CC:  sched/task_setcancelstate.c CC:  sched/task_setcanceltype.c CC:  sched/task_testcancel.c CC:  sched/task_getpid.c CC:  sched/sched_dumpstack.c CC:  sched/sched_backtrace.c CC:  sched/task_startup.c CC:  search/hcreate_r.c CC:  search/hcreate.c CC:  search/hash_func.c CC:  semaphore/sem_init.c CC:  semaphore/sem_setprotocol.c CC:  semaphore/sem_getprotocol.c CC:  semaphore/sem_getvalue.c CC:  semaphore/sem_destroy.c CC:  semaphore/sem_wait.c CC:  semaphore/sem_trywait.c CC:  semaphore/sem_timedwait.c CC:  semaphore/sem_clockwait.c CC:  semaphore/sem_post.c CC:  signal/sig_ignore.c CC:  signal/sig_interrupt.c CC:  signal/sig_set.c CC:  signal/sig_signal.c CC:  signal/sig_addset.c CC:  signal/sig_altstack.c CC:  signal/sig_andset.c CC:  signal/sig_delset.c CC:  signal/sig_emptyset.c CC:  signal/sig_fillset.c CC:  signal/sig_hold.c CC:  signal/sig_isemptyset.c CC:  signal/sig_ismember.c CC:  signal/sig_killpg.c CC:  signal/sig_nandset.c CC:  signal/sig_orset.c CC:  signal/sig_pause.c CC:  signal/sig_psignal.c CC:  signal/sig_raise.c CC:  signal/sig_relse.c CC:  signal/sig_xorset.c CC:  signal/sig_wait.c CC:  spawn/lib_psfa_addaction.c CC:  spawn/lib_psfa_addclose.c CC:  spawn/lib_psfa_adddup2.c CC:  spawn/lib_psfa_addopen.c CC:  spawn/lib_psfa_destroy.c CC:  spawn/lib_psfa_init.c CC:  spawn/lib_psa_getflags.c CC:  spawn/lib_psa_getschedparam.c CC:  spawn/lib_psa_getschedpolicy.c CC:  spawn/lib_psa_init.c CC:  spawn/lib_psa_setflags.c CC:  spawn/lib_psa_setschedparam.c CC:  spawn/lib_psa_setschedpolicy.c CC:  spawn/lib_psa_getsigmask.c CC:  spawn/lib_psa_setsigmask.c CC:  spawn/lib_psa_getstacksize.c CC:  spawn/lib_psa_setstacksize.c CC:  spawn/lib_psa_destroy.c CC:  spawn/lib_psa_getpriority.c CC:  spawn/lib_psa_setpriority.c CC:  spawn/lib_psa_getstackaddr.c CC:  spawn/lib_psa_setstackaddr.c CC:  stdio/lib_fileno.c CC:  stdio/lib_printf.c CC:  stdio/lib_sprintf.c CC:  stdio/lib_asprintf.c CC:  stdio/lib_snprintf.c CC:  stdio/lib_vsprintf.c CC:  stdio/lib_vasprintf.c CC:  stdio/lib_vsnprintf.c CC:  stdio/lib_dprintf.c CC:  stdio/lib_vdprintf.c CC:  stdio/lib_vprintf.c CC:  stdio/lib_perror.c CC:  stdio/lib_putchar.c CC:  stdio/lib_getchar.c CC:  stdio/lib_puts.c CC:  stdio/lib_gets_s.c CC:  stdio/lib_gets.c CC:  stdio/lib_libdgets.c CC:  stdio/lib_sscanf.c CC:  stdio/lib_vsscanf.c CC:  stdio/lib_remove.c CC:  stdio/lib_tempnam.c CC:  stdio/lib_tmpnam.c CC:  stdio/lib_renameat.c CC:  stdio/lib_putwchar.c CC:  stdio/lib_fopen.c CC:  stdio/lib_freopen.c CC:  stdio/lib_fclose.c CC:  stdio/lib_fread.c CC:  stdio/lib_libfread_unlocked.c CC:  stdio/lib_fseek.c CC:  stdio/lib_fseeko.c CC:  stdio/lib_ftell.c CC:  stdio/lib_ftello.c CC:  stdio/lib_fsetpos.c CC:  stdio/lib_getdelim.c CC:  stdio/lib_fgetpos.c CC:  stdio/lib_getc.c CC:  stdio/lib_fgetc.c CC:  stdio/lib_fgets.c CC:  stdio/lib_libfgets.c CC:  stdio/lib_fwrite.c CC:  stdio/lib_libfwrite.c CC:  stdio/lib_fflush.c CC:  stdio/lib_libflushall.c CC:  stdio/lib_libfflush.c CC:  stdio/lib_rdflush_unlocked.c CC:  stdio/lib_wrflush_unlocked.c CC:  stdio/lib_putc.c CC:  stdio/lib_fputc.c CC:  stdio/lib_fputs.c CC:  stdio/lib_ungetc.c CC:  stdio/lib_fprintf.c CC:  stdio/lib_vfprintf.c CC:  stdio/lib_feof.c CC:  stdio/lib_ferror.c CC:  stdio/lib_rewind.c CC:  stdio/lib_clearerr.c CC:  stdio/lib_scanf.c CC:  stdio/lib_vscanf.c CC:  stdio/lib_fscanf.c CC:  stdio/lib_vfscanf.c CC:  stdio/lib_tmpfile.c CC:  stdio/lib_setbuf.c CC:  stdio/lib_setvbuf.c CC:  stdio/lib_libfilelock.c CC:  stdio/lib_libgetstreams.c CC:  stdio/lib_setbuffer.c CC:  stdio/lib_fputwc.c CC:  stdio/lib_putwc.c CC:  stdio/lib_fputws.c CC:  stdio/lib_fopencookie.c CC:  stdio/lib_fmemopen.c CC:  stdio/lib_open_memstream.c CC:  stdio/lib_fgetwc.c CC:  stdio/lib_getwc.c CC:  stdio/lib_ungetwc.c CC:  stdlib/lib_abs.c CC:  stdlib/lib_abort.c CC:  stdlib/lib_atof.c CC:  stdlib/lib_atoi.c CC:  stdlib/lib_getprogname.c CC:  stdlib/lib_atol.c CC:  stdlib/lib_atoll.c CC:  stdlib/lib_div.c CC:  stdlib/lib_ldiv.c CC:  stdlib/lib_lldiv.c CC:  stdlib/lib_exit.c CC:  stdlib/lib_itoa.c CC:  stdlib/lib_labs.c CC:  stdlib/lib_llabs.c CC:  stdlib/lib_realpath.c CC:  stdlib/lib_bsearch.c CC:  stdlib/lib_rand.c CC:  stdlib/lib_rand48.c CC:  stdlib/lib_qsort.c CC:  stdlib/lib_srand.c CC:  stdlib/lib_strtol.c CC:  stdlib/lib_strtoll.c CC:  stdlib/lib_strtoul.c CC:  stdlib/lib_strtoull.c CC:  stdlib/lib_strtold.c CC:  stdlib/lib_checkbase.c CC:  stdlib/lib_mktemp.c CC:  stdlib/lib_mkstemp.c CC:  stdlib/lib_mkdtemp.c CC:  stdlib/lib_aligned_alloc.c CC:  stdlib/lib_posix_memalign.c CC:  stdlib/lib_valloc.c CC:  stdlib/lib_mblen.c CC:  stdlib/lib_mbtowc.c CC:  stdlib/lib_wctomb.c CC:  stdlib/lib_mbstowcs.c CC:  stdlib/lib_wcstombs.c CC:  stdlib/lib_atexit.c CC:  stdlib/lib_reallocarray.c CC:  stdlib/lib_arc4random.c CC:  stream/lib_meminstream.c CC:  stream/lib_memoutstream.c CC:  stream/lib_memsistream.c CC:  stream/lib_memsostream.c CC:  stream/lib_lowoutstream.c CC:  stream/lib_rawinstream.c CC:  stream/lib_rawoutstream.c CC:  stream/lib_rawsistream.c CC:  stream/lib_rawsostream.c CC:  stream/lib_zeroinstream.c CC:  stream/lib_nullinstream.c CC:  stream/lib_nulloutstream.c CC:  stream/lib_mtdoutstream.c CC:  stream/lib_libnoflush.c CC:  stream/lib_libsnoflush.c CC:  stream/lib_syslogstream.c CC:  stream/lib_bufferedoutstream.c CC:  stream/lib_hexdumpstream.c CC:  stream/lib_base64outstream.c CC:  stream/lib_mtdsostream.c CC:  stream/lib_filesistream.c CC:  stream/lib_fileoutstream.c CC:  stream/lib_libosprintf.c CC:  stream/lib_libbsprintf.c CC:  stream/lib_libvscanf.c CC:  stream/lib_libvsprintf.c CC:  stream/lib_ultoa_invert.c CC:  stream/lib_syslograwstream.c CC:  stream/lib_stdinstream.c CC:  stream/lib_stdoutstream.c CC:  stream/lib_stdsistream.c CC:  stream/lib_stdsostream.c CC:  stream/lib_blkoutstream.c CC:  string/lib_ffs.c CC:  string/lib_ffsl.c CC:  string/lib_ffsll.c CC:  string/lib_fls.c CC:  string/lib_flsl.c CC:  string/lib_flsll.c CC:  string/lib_isbasedigit.c CC:  string/lib_memmem.c CC:  string/lib_popcount.c CC:  string/lib_popcountl.c CC:  string/lib_popcountll.c CC:  string/lib_skipspace.c CC:  string/lib_strcasecmp.c CC:  string/lib_strcspn.c CC:  string/lib_strdup.c CC:  string/lib_strerror.c CC:  string/lib_strncasecmp.c CC:  string/lib_strncat.c CC:  string/lib_strndup.c CC:  string/lib_strcasestr.c CC:  string/lib_strpbrk.c CC:  string/lib_strspn.c CC:  string/lib_strstr.c CC:  string/lib_strtok.c CC:  string/lib_strtokr.c CC:  string/lib_strsep.c CC:  string/lib_strerrorr.c CC:  string/lib_explicit_bzero.c CC:  string/lib_strsignal.c CC:  string/lib_index.c CC:  string/lib_rindex.c CC:  string/lib_timingsafe_bcmp.c CC:  string/lib_strverscmp.c CC:  string/lib_mempcpy.c CC:  string/lib_rawmemchr.c CC:  string/lib_bzero.c CC:  string/lib_memmove.c CC:  string/lib_strlcat.c CC:  string/lib_strlcpy.c CC:  string/lib_strnlen.c CC:  string/lib_memcpy.c CC:  string/lib_memccpy.c CC:  string/lib_memcmp.c CC:  string/lib_memrchr.c CC:  string/lib_stpncpy.c CC:  string/lib_strchr.c CC:  string/lib_strcmp.c CC:  string/lib_strlen.c CC:  string/lib_strncpy.c CC:  string/lib_memchr.c CC:  string/lib_stpcpy.c CC:  string/lib_strcat.c CC:  string/lib_strchrnul.c CC:  string/lib_strcpy.c CC:  string/lib_strncmp.c CC:  string/lib_strrchr.c CC:  string/lib_memset.c CC:  symtab/symtab_findbyname.c CC:  symtab/symtab_findbyvalue.c CC:  symtab/symtab_sortbyname.c CC:  syslog/lib_syslog.c CC:  syslog/lib_setlogmask.c CC:  termios/lib_cfspeed.c CC:  termios/lib_cfmakeraw.c CC:  termios/lib_isatty.c CC:  termios/lib_tcflush.c CC:  termios/lib_tcdrain.c CC:  termios/lib_tcflow.c CC:  termios/lib_tcgetattr.c CC:  termios/lib_tcsetattr.c CC:  termios/lib_tcsendbreak.c CC:  termios/lib_ttyname.c CC:  termios/lib_ttynamer.c CC:  time/lib_strftime.c CC:  time/lib_calendar2utc.c CC:  time/lib_daysbeforemonth.c CC:  time/lib_gettimeofday.c CC:  time/lib_isleapyear.c CC:  time/lib_settimeofday.c CC:  time/lib_time.c CC:  time/lib_timespec_get.c CC:  time/lib_nanosleep.c CC:  time/lib_difftime.c CC:  time/lib_dayofweek.c CC:  time/lib_asctime.c CC:  time/lib_asctimer.c CC:  time/lib_ctime.c CC:  time/lib_ctimer.c CC:  time/lib_gethrtime.c CC:  time/lib_timegm.c CC:  time/lib_gmtime.c CC:  time/lib_gmtimer.c CC:  tls/tls_getinfo.c CC:  uio/lib_preadv.c CC:  uio/lib_pwritev.c CC:  unistd/lib_access.c CC:  unistd/lib_daemon.c CC:  unistd/lib_swab.c CC:  unistd/lib_pathconf.c CC:  unistd/lib_sysconf.c CC:  unistd/lib_getcwd.c CC:  unistd/lib_getentropy.c CC:  unistd/lib_getopt_common.c CC:  unistd/lib_getopt.c CC:  unistd/lib_getopt_long.c CC:  unistd/lib_getopt_longonly.c CC:  unistd/lib_getoptvars.c CC:  unistd/lib_getoptargp.c CC:  unistd/lib_getopterrp.c CC:  unistd/lib_getoptindp.c CC:  unistd/lib_getoptoptp.c CC:  unistd/lib_times.c CC:  unistd/lib_alarm.c CC:  unistd/lib_fstatvfs.c CC:  unistd/lib_statvfs.c CC:  unistd/lib_sleep.c CC:  unistd/lib_nice.c CC:  unistd/lib_setreuid.c CC:  unistd/lib_setregid.c CC:  unistd/lib_getrusage.c CC:  unistd/lib_utime.c CC:  unistd/lib_utimes.c CC:  unistd/lib_setrlimit.c CC:  unistd/lib_getrlimit.c CC:  unistd/lib_setpriority.c CC:  unistd/lib_getpriority.c CC:  unistd/lib_futimes.c CC:  unistd/lib_lutimes.c CC:  unistd/lib_gethostname.c CC:  unistd/lib_sethostname.c CC:  unistd/lib_fchownat.c CC:  unistd/lib_linkat.c CC:  unistd/lib_readlinkat.c CC:  unistd/lib_symlinkat.c CC:  unistd/lib_unlinkat.c CC:  unistd/lib_usleep.c CC:  unistd/lib_getpgrp.c CC:  unistd/lib_getpgid.c CC:  unistd/lib_lockf.c CC:  unistd/lib_flock.c CC:  unistd/lib_getpass.c CC:  unistd/lib_confstr.c CC:  unistd/lib_ulimit.c CC:  unistd/lib_setuid.c CC:  unistd/lib_setgid.c CC:  unistd/lib_getuid.c CC:  unistd/lib_getgid.c CC:  unistd/lib_seteuid.c CC:  unistd/lib_setegid.c CC:  unistd/lib_geteuid.c CC:  unistd/lib_getegid.c CC:  unistd/lib_chdir.c CC:  unistd/lib_fchdir.c CC:  unistd/lib_restoredir.c CC:  unistd/lib_truncate.c CC:  unistd/lib_posix_fallocate.c CC:  unistd/lib_fork.c CC:  uuid/lib_uuid_compare.c CC:  uuid/lib_uuid_create.c CC:  uuid/lib_uuid_create_nil.c CC:  uuid/lib_uuid_equal.c CC:  uuid/lib_uuid_from_string.c CC:  uuid/lib_uuid_hash.c CC:  uuid/lib_uuid_is_nil.c CC:  uuid/lib_uuid_stream.c CC:  uuid/lib_uuid_to_string.c CC:  wchar/lib_wcscmp.c CC:  wchar/lib_wcslen.c CC:  wchar/lib_wmemchr.c CC:  wchar/lib_wmemcmp.c CC:  wchar/lib_wmemcpy.c CC:  wchar/lib_wmemmove.c CC:  wchar/lib_wmemset.c CC:  wchar/lib_btowc.c CC:  wchar/lib_mbrtowc.c CC:  wchar/lib_wctob.c CC:  wchar/lib_wcslcpy.c CC:  wchar/lib_wcsxfrm.c CC:  wchar/lib_wcrtomb.c CC:  wchar/lib_wcsftime.c CC:  wchar/lib_wcscoll.c CC:  wchar/lib_wcstol.c CC:  wchar/lib_wcstoll.c CC:  wchar/lib_wcstoul.c CC:  wchar/lib_wcstoull.c CC:  wchar/lib_wcstold.c CC:  wchar/lib_wcstof.c CC:  wchar/lib_wcstod.c CC:  wchar/lib_swprintf.c CC:  wchar/lib_mbsnrtowcs.c CC:  wchar/lib_wcsnrtombs.c CC:  wchar/lib_mbsinit.c CC:  wchar/lib_mbrlen.c CC:  wchar/lib_mbsrtowcs.c CC:  wchar/lib_wcsrtombs.c CC:  wchar/lib_wcscpy.c CC:  wchar/lib_wcscat.c CC:  wchar/lib_wcslcat.c CC:  wchar/lib_wcsncat.c CC:  wchar/lib_wcsrchr.c CC:  wchar/lib_wcschr.c CC:  wchar/lib_wcsncpy.c CC:  wchar/lib_wcsncmp.c CC:  wchar/lib_wcscspn.c CC:  wchar/lib_wcspbrk.c CC:  wchar/lib_wcsspn.c CC:  wchar/lib_wcsstr.c CC:  wchar/lib_wcstok.c CC:  wchar/lib_wcswcs.c CC:  wchar/lib_wcwidth.c CC:  wchar/lib_wcswidth.c CC:  wctype/lib_wctype.c CC:  wctype/lib_iswctype.c CC:  wctype/lib_towlower.c CC:  wctype/lib_towupper.c IN: libs/libc/libc.a -> staging/libc.a CC:  mm_heap/mm_initialize.c CC:  mm_heap/mm_malloc_size.c CC:  mm_heap/mm_shrinkchunk.c CC:  mm_heap/mm_brkaddr.c CC:  mm_heap/mm_calloc.c CC:  mm_heap/mm_extend.c CC:  mm_heap/mm_free.c CC:  mm_heap/mm_mallinfo.c CC:  mm_heap/mm_malloc.c CC:  mm_heap/mm_foreach.c CC:  mm_heap/mm_memalign.c CC:  mm_heap/mm_realloc.c CC:  mm_heap/mm_zalloc.c CC:  mm_heap/mm_heapmember.c CC:  mm_heap/mm_memdump.c CC:  umm_heap/umm_globals.c CC:  umm_heap/umm_initialize.c CC:  umm_heap/umm_addregion.c CC:  umm_heap/umm_malloc_size.c CC:  umm_heap/umm_brkaddr.c CC:  umm_heap/umm_calloc.c CC:  umm_heap/umm_extend.c CC:  umm_heap/umm_free.c CC:  umm_heap/umm_mallinfo.c CC:  umm_heap/umm_malloc.c CC:  umm_heap/umm_memalign.c CC:  umm_heap/umm_realloc.c CC:  umm_heap/umm_zalloc.c CC:  umm_heap/umm_heapmember.c CC:  umm_heap/umm_memdump.c CC:  mempool/mempool.c CC:  mempool/mempool_multiple.c CC:  mempool/mempool_procfs.c CC:  kasan/hook.c CC:  map/mm_map.c IN: mm/libmm.a -> staging/libmm.a AS:  chip/espressif/esp_vectors.S AS:  chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu_asm.S AS:  common/riscv_exception_common.S AS:  common/riscv_mhartid.S AS:  common/riscv_saveusercontext.S AS:  common/fork.S CC:  chip/espressif/esp_allocateheap.c CC:  chip/espressif/esp_start.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/espressif/esp_lowputc.h:48,
+                 from chip/espressif/esp_start.c:39:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/espressif/esp_idle.c CC:  chip/espressif/esp_irq.c CC:  chip/espressif/esp_gpio.c CC:  chip/espressif/esp_rtc_gpio.c CC:  chip/espressif/esp_libc_stubs.c chip/espressif/esp_libc_stubs.c: In function '__assert_func':
+chip/espressif/esp_libc_stubs.c:358:1: warning: 'noreturn' function does return
+  358 | }
+      | ^
+CC:  chip/espressif/esp_lowputc.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/espressif/esp_lowputc.h:48,
+                 from chip/espressif/esp_lowputc.c:48:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+chip/espressif/esp_lowputc.c: In function 'esp_lowputc_uart_module_enable':
+chip/espressif/esp_lowputc.c:340:3: warning: implicit declaration of function 'nxmutex_init'; did you mean 'nxmutex_wait'? [-Wimplicit-function-declaration]
+  340 |   nxmutex_init(&lock);
+      |   ^~~~~~~~~~~~
+      |   nxmutex_wait
+chip/espressif/esp_lowputc.c:374:3: warning: implicit declaration of function 'nxmutex_destroy'; did you mean 'nxsem_destroy'? [-Wimplicit-function-declaration]
+  374 |   nxmutex_destroy(&lock);
+      |   ^~~~~~~~~~~~~~~
+      |   nxsem_destroy
+CC:  chip/espressif/esp_serial.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/espressif/esp_lowputc.h:48,
+                 from chip/espressif/esp_serial.c:50:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/espressif/esp_systemreset.c CC:  chip/espressif/esp_timerisr.c CC:  chip/espressif/esp_random.c CC:  chip/espressif/esp_oneshot.c CC:  chip/espressif/esp_usbserial.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_efuse.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_init.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/esp_image_format.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/flash_encrypt.c CC:  chip/esp-hal-3rdparty/components/efuse/esp32p4/esp_efuse_fields.c CC:  chip/esp-hal-3rdparty/components/efuse/esp32p4/esp_efuse_rtc_calib.c CC:  chip/esp-hal-3rdparty/components/efuse/esp32p4/esp_efuse_table.c CC:  chip/esp-hal-3rdparty/components/efuse/esp32p4/esp_efuse_utility.c CC:  chip/esp-hal-3rdparty/components/efuse/src/efuse_controller/keys/with_key_purposes/esp_efuse_api_key.c CC:  chip/esp-hal-3rdparty/components/efuse/src/esp_efuse_api.c In file included from chip/esp-hal-3rdparty/components/efuse/src/esp_efuse_api.c:20:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/efuse/src/esp_efuse_utility.c CC:  chip/esp-hal-3rdparty/components/esp_adc/esp32p4/curve_fitting_coefficients.c CC:  chip/esp-hal-3rdparty/components/esp_adc/adc_cali_curve_fitting.c CC:  chip/esp-hal-3rdparty/components/esp_adc/adc_cali.c CC:  chip/esp-hal-3rdparty/components/upper_hal_touch_sens/common/touch_sens_common.c In file included from chip/esp-hal-3rdparty/components/upper_hal_touch_sens/common/touch_sens_common.c:9:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_touch_sens/hw_ver3/touch_version_specific.c In file included from chip/esp-hal-3rdparty/components/upper_hal_touch_sens/hw_ver3/touch_version_specific.c:14:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hal_touch_sens/esp32p4/touch_sensor_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ana_cmpr/esp32p4/ana_cmpr_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ana_conv/esp32p4/adc_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ana_conv/esp32p4/temperature_sensor_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ana_conv/adc_hal_common.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ana_conv/adc_oneshot_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_security/aes_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_clock/esp32p4/clk_tree_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_dma/esp32p4/gdma_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_dma/gdma_hal_ahb_v2.c CC:  chip/esp-hal-3rdparty/components/esp_hal_dma/gdma_hal_axi.c CC:  chip/esp-hal-3rdparty/components/esp_hal_dma/gdma_hal_crc_gen.c CC:  chip/esp-hal-3rdparty/components/esp_hal_dma/gdma_hal_top.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/esp32p4/dedic_gpio_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/esp32p4/sdm_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/gpio_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/rtc_io_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/sdm_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpio/esp32p4/rtc_io_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpspi/esp32p4/spi_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpspi/spi_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpspi/spi_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpspi/spi_slave_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_gpspi/spi_slave_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_i2c/esp32p4/i2c_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_i2c/i2c_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_i2s/esp32p4/i2s_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_i2s/i2s_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ledc/esp32p4/ledc_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ledc/ledc_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_ledc/ledc_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mcpwm/esp32p4/mcpwm_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mcpwm/mcpwm_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mspi/spi_flash_encrypt_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mspi/spi_flash_hal_gpspi.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mspi/spi_flash_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_mspi/spi_flash_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_pcnt/esp32p4/pcnt_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_pcnt/pcnt_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_pmu/brownout_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_pmu/esp32p4/pau_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_pmu/esp32p4/pmu_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_rmt/esp32p4/rmt_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_rmt/rmt_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_security/hmac_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_security/sha_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_timg/esp32p4/timer_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_timg/timer_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_touch_sens/touch_sens_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_twai/esp32p4/twai_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_twai/twai_hal_v1.c CC:  chip/esp-hal-3rdparty/components/esp_hal_uart/esp32p4/uart_periph.c CC:  chip/esp-hal-3rdparty/components/esp_hal_uart/uart_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hal_uart/uart_hal.c CC:  chip/esp-hal-3rdparty/components/esp_hal_wdt/wdt_hal_iram.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/adc_share_hw_ctrl.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/adc_share_hw_ctrl.c:25:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/clk_ctrl_os.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/clk_ctrl_os.c:7:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/clk_utils.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/cpu.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/esp_clk.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/esp_clk.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/esp_gpio_reserve.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/esp_memory_utils.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/hw_random.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/intr_alloc.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/intr_alloc.c:16:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/mac_addr.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/mspi/mspi_timing_tuning/mspi_timing_tuning.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/periph_ctrl.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/periph_ctrl.c:6:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/ldo/esp_ldo_regulator.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/ldo/esp_ldo_regulator.c:11:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu.c:19:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu_static.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu_retention.h:11,
+                 from chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_cpu_static.c:12:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/lowpower/port/esp32p4/sleep_clock.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/regdma_link.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/port/regdma_link.c:20:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/cpu_region_protect.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/esp_clk_tree.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/esp_cpu_intr.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/io_mux.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/io_mux.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/peripheral_domain_pd.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/pmu_init.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/pmu_param.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/pmu_pvt.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/pmu_sleep.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/rtc_clk_init.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/rtc_clk.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/rtc_time.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/sar_periph_ctrl.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/sar_periph_ctrl.c:19:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp32p4/systimer.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/esp_clk_tree_common.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/port/pau_regdma.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/power_supply/brownout.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/power_supply/vbat.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/power_supply/vbat.c:16:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/regi2c_ctrl.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/regi2c_ctrl.c:10:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/rtc_module.c In file included from chip/esp-hal-3rdparty/components/esp_hw_support/rtc_module.c:15:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_console.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_event.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/esp-hal-3rdparty/components/esp_hw_support/sleep_event.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_gpio.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_modes.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/esp-hal-3rdparty/components/esp_hw_support/sleep_modes.c:18:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_mspi.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_modem.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_uart.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_retention.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_system_peripheral.c CC:  chip/esp-hal-3rdparty/components/esp_hw_support/sleep_usb.c CC:  chip/esp-hal-3rdparty/components/esp_mm/esp_cache_msync.c In file included from chip/esp-hal-3rdparty/components/esp_mm/esp_cache_msync.c:14:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_mm/esp_cache_utils.c In file included from chip/esp-hal-3rdparty/components/esp_mm/esp_cache_utils.c:14:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_mm/esp_mmu_map.c In file included from chip/esp-hal-3rdparty/components/esp_mm/esp_mmu_map.c:34:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_mm/port/esp32p4/ext_mem_layout.c CC:  chip/esp-hal-3rdparty/components/esp_pm/pm_impl.c In file included from chip/esp-hal-3rdparty/components/esp_pm/pm_impl.c:35:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_pm/pm_locks.c In file included from chip/esp-hal-3rdparty/components/esp_pm/pm_locks.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_clic.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_crc.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_efuse.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_gpio.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_print.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_regi2c_esp32p4.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_serial_output.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_spiflash.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_sys.c CC:  chip/esp-hal-3rdparty/components/esp_rom/patches/esp_rom_systimer.c CC:  chip/esp-hal-3rdparty/components/esp_security/src/esp_crypto_lock.c CC:  chip/esp-hal-3rdparty/components/esp_security/src/esp_crypto_periph_clk.c CC:  chip/esp-hal-3rdparty/components/esp_security/src/esp_hmac.c CC:  chip/esp-hal-3rdparty/components/esp_system/esp_err.c CC:  chip/esp-hal-3rdparty/components/esp_system/esp_system.c In file included from chip/esp-hal-3rdparty/components/esp_system/esp_system.c:9:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_system/port/soc/esp32p4/clk.c CC:  chip/esp-hal-3rdparty/components/esp_system/port/soc/esp32p4/reset_reason.c CC:  chip/esp-hal-3rdparty/components/esp_system/port/soc/esp32p4/system_internal.c CC:  chip/esp-hal-3rdparty/components/esp_system/startup_funcs.c In file included from chip/esp-hal-3rdparty/components/esp_system/startup_funcs.c:20:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_system/startup.c CC:  chip/esp-hal-3rdparty/components/esp_system/system_time.c In file included from chip/esp-hal-3rdparty/components/esp_system/system_time.c:12:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_task.h:24,
+                 from chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer_init.c CC:  chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer_impl_systimer.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer_impl_systimer.c:21:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/esp_timer/src/system_time.c CC:  chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer_impl_common.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_task.h:24,
+                 from chip/esp-hal-3rdparty/components/esp_timer/src/esp_timer_impl_common.c:10:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/hal/esp32p4/efuse_hal.c CC:  chip/esp-hal-3rdparty/components/hal/cache_hal.c CC:  chip/esp-hal-3rdparty/components/hal/efuse_hal.c CC:  chip/esp-hal-3rdparty/components/hal/hal_utils.c CC:  chip/esp-hal-3rdparty/components/hal/mmu_hal.c CC:  chip/esp-hal-3rdparty/components/log/src/util.c CC:  chip/esp-hal-3rdparty/components/log/src/buffer/log_buffers.c CC:  chip/esp-hal-3rdparty/components/log/src/log_level/log_level.c CC:  chip/esp-hal-3rdparty/components/log/src/log_level/tag_log_level/linked_list/log_linked_list.c CC:  chip/esp-hal-3rdparty/components/log/src/log_level/tag_log_level/tag_log_level.c CC:  chip/esp-hal-3rdparty/components/log/src/log.c CC:  chip/esp-hal-3rdparty/components/log/src/noos/log_lock.c CC:  chip/esp-hal-3rdparty/components/log/src/noos/log_timestamp.c CC:  chip/esp-hal-3rdparty/components/log/src/os/log_write.c CC:  chip/esp-hal-3rdparty/components/log/src/os/util.c In file included from chip/esp-hal-3rdparty/components/log/src/os/util.c:7:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/riscv/instruction_decode.c CC:  chip/esp-hal-3rdparty/components/riscv/interrupt_clic.c CC:  chip/esp-hal-3rdparty/components/riscv/interrupt.c CC:  chip/esp-hal-3rdparty/components/riscv/rv_utils.c CC:  chip/esp-hal-3rdparty/components/soc/esp32p4/gpio_periph.c CC:  chip/esp-hal-3rdparty/components/soc/esp32p4/interrupts.c CC:  chip/esp-hal-3rdparty/components/soc/esp32p4/power_supply_periph.c CC:  chip/esp-hal-3rdparty/components/soc/lldesc.c CC:  chip/esp-hal-3rdparty/components/spi_flash/cache_utils.c In file included from chip/esp-hal-3rdparty/components/spi_flash/cache_utils.c:12:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/spi_flash/esp_flash_api.c CC:  chip/esp-hal-3rdparty/components/spi_flash/esp_flash_spi_init.c CC:  chip/esp-hal-3rdparty/components/spi_flash/flash_brownout_hook.c CC:  chip/esp-hal-3rdparty/components/spi_flash/flash_mmap.c In file included from chip/esp-hal-3rdparty/components/spi_flash/flash_mmap.c:11:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/spi_flash/flash_ops.c In file included from chip/esp-hal-3rdparty/components/spi_flash/flash_ops.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/spi_flash/memspi_host_driver.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_chip_drivers.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_chip_gd.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_chip_generic.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_chip_winbond.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_hpm_enable.c CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_os_func_app.c In file included from chip/esp-hal-3rdparty/components/spi_flash/spi_flash_os_func_app.c:12:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/spi_flash/spi_flash_os_func_noos.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core_i2c.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core_spi.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core_mailbox.c In file included from chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core_mailbox.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/lp_core_mailbox_impl_hw.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/shared/ulp_lp_core_memory_shared.c CC:  chip/esp-hal-3rdparty/components/ulp/lp_core/shared/ulp_lp_core_lp_timer_shared.c CC:  chip/esp-hal-3rdparty/components/upper_hal_ana_cmpr/ana_cmpr.c In file included from chip/esp-hal-3rdparty/components/upper_hal_ana_cmpr/ana_cmpr.c:7:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_dma/src/esp_dma_utils.c CC:  chip/esp-hal-3rdparty/components/upper_hal_dma/src/gdma_link.c CC:  chip/esp-hal-3rdparty/components/upper_hal_dma/src/gdma.c In file included from chip/esp-hal-3rdparty/components/upper_hal_dma/src/gdma_priv.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_dma/src/gdma.c:29:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_gpio/src/gpio.c In file included from chip/esp-hal-3rdparty/components/upper_hal_gpio/src/gpio.c:9:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_gpio/src/rtc_io.c In file included from chip/esp-hal-3rdparty/components/upper_hal_gpio/src/rtc_io.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_common.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_common.c:7:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_bytes.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_bytes.c:8:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_copy.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_copy.c:8:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_simple.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder_simple.c:8:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_encoder.c:8:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_rx.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_rx.c:12:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_tx.c In file included from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_private.h:21,
+                 from chip/esp-hal-3rdparty/components/upper_hal_rmt/src/rmt_tx.c:13:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsched_unlock'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsched_unlock
+CC:  chip/esp-hal-3rdparty/components/upper_hal_uart/src/uart_wakeup.c CC:  chip/esp-hal-3rdparty/nuttx/src/components/newlib/newlib/libc/misc/init.c CC:  chip/esp-hal-3rdparty/nuttx/src/heap_caps.c CC:  chip/esp-hal-3rdparty/nuttx/src/platform/os.c In file included from /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_system/include/esp_private/critical_section.h:17,
+                 from chip/esp-hal-3rdparty/nuttx/src/platform/os.c:42:
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h: In function 'esp_os_task_delay_adapter':
+/home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/nuttx/include/platform/os.h:357:7: warning: implicit declaration of function 'nxsched_usleep'; did you mean 'nxsig_usleep'? [-Wimplicit-function-declaration]
+  357 |       nxsched_usleep(us);
+      |       ^~~~~~~~~~~~~~
+      |       nxsig_usleep
+CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_mem.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/bootloader_flash/src/bootloader_flash_config_esp32p4.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/bootloader_flash/src/bootloader_flash.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/bootloader_flash/src/flash_qio_mode.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/esp32p4/bootloader_esp32p4.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/esp32p4/bootloader_soc.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_clock_init.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_clock_loader.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_common_loader.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_common.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_console_loader.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_console.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_random_esp32p4.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_random.c CC:  chip/esp-hal-3rdparty/components/bootloader_support/src/bootloader_sha.c CC:  chip/esp-hal-3rdparty/components/efuse/src/esp_efuse_fields.c CC:  chip/esp-hal-3rdparty/nuttx/src/bootloader_banner_wrap.c CC:  chip/esp_chip_rev.c CC:  common/riscv_initialize.c CC:  common/riscv_swint.c CC:  common/riscv_mtimer.c CC:  common/riscv_allocateheap.c CC:  common/riscv_createstack.c CC:  common/riscv_cpuinfo.c CC:  common/riscv_cpuidlestack.c CC:  common/riscv_doirq.c CC:  common/riscv_exit.c CC:  common/riscv_exception.c CC:  common/riscv_getnewintctx.c CC:  common/riscv_getintstack.c CC:  common/riscv_initialstate.c CC:  common/riscv_modifyreg32.c CC:  common/riscv_nputs.c CC:  common/riscv_releasestack.c CC:  common/riscv_registerdump.c CC:  common/riscv_stackframe.c CC:  common/riscv_switchcontext.c CC:  common/riscv_usestack.c CC:  common/riscv_tcbinfo.c CC:  common/riscv_schedulesigaction.c CC:  common/riscv_sigdeliver.c CC:  common/riscv_idle.c CC:  common/riscv_mdelay.c CC:  common/riscv_udelay.c CC:  common/riscv_backtrace.c CC:  common/riscv_fork.c CC:  common/riscv_pmp.c IN: arch/risc-v/src/libarch.a -> staging/libarch.a CC:  builtin_list.c CC:  gpio_main.c CC:  trace/trace.c CC:  nsh_alias.c CC:  nsh_command.c CC:  nsh_console.c CC:  nsh_consolemain.c CC:  nsh_dbgcmds.c CC:  nsh_ddcmd.c CC:  nsh_envcmds.c CC:  nsh_fileapps.c CC:  nsh_fscmds.c CC:  nsh_fsutils.c CC:  nsh_init.c CC:  nsh_mmcmds.c CC:  nsh_mntcmds.c CC:  nsh_parse.c CC:  nsh_printf.c CC:  nsh_proccmds.c CC:  nsh_prompt.c CC:  nsh_script.c CC:  nsh_session.c CC:  nsh_syscmds.c CC:  nsh_system.c CC:  nsh_test.c CC:  nsh_timcmds.c CC:  nsh_wait.c CC:  board/dummy.c CC:  dumpstack.c CC:  nsh_main.c CC:  sh_main.c CC:  readline.c CC:  readline_common.c CC:  readline_fd.c CC:  readline_stream.c IN: /home/mi/openvela-contest/apps/libapps.a -> staging/libapps.a CC:  fs_initialize.c CC:  fs_heap.c CC:  inode/fs_files.c CC:  inode/fs_foreachinode.c CC:  inode/fs_inode.c CC:  inode/fs_inodeaddref.c CC:  inode/fs_inodebasename.c CC:  inode/fs_inodefind.c CC:  inode/fs_inodefree.c CC:  inode/fs_inodegetpath.c CC:  inode/fs_inoderelease.c CC:  inode/fs_inoderemove.c CC:  inode/fs_inodereserve.c CC:  inode/fs_inodesearch.c CC:  vfs/fs_chstat.c CC:  vfs/fs_close.c CC:  vfs/fs_dup.c CC:  vfs/fs_dup2.c CC:  vfs/fs_dup3.c CC:  vfs/fs_fcntl.c CC:  vfs/fs_epoll.c CC:  vfs/fs_fchstat.c CC:  vfs/fs_fstat.c CC:  vfs/fs_fstatfs.c CC:  vfs/fs_ioctl.c CC:  vfs/fs_lseek.c CC:  vfs/fs_mkdir.c CC:  vfs/fs_open.c CC:  vfs/fs_poll.c CC:  vfs/fs_pread.c CC:  vfs/fs_pwrite.c CC:  vfs/fs_read.c CC:  vfs/fs_rename.c CC:  vfs/fs_rmdir.c CC:  vfs/fs_select.c CC:  vfs/fs_sendfile.c CC:  vfs/fs_stat.c CC:  vfs/fs_statfs.c CC:  vfs/fs_uio.c CC:  vfs/fs_unlink.c CC:  vfs/fs_write.c CC:  vfs/fs_dir.c CC:  vfs/fs_fsync.c CC:  vfs/fs_syncfs.c CC:  vfs/fs_truncate.c CC:  vfs/fs_link.c CC:  vfs/fs_symlink.c CC:  vfs/fs_readlink.c CC:  driver/fs_registerdriver.c CC:  driver/fs_unregisterdriver.c CC:  driver/fs_registerpipedriver.c CC:  driver/fs_unregisterpipedriver.c CC:  driver/fs_registerblockdriver.c CC:  driver/fs_unregisterblockdriver.c CC:  driver/fs_findblockdriver.c CC:  driver/fs_openblockdriver.c CC:  driver/fs_closeblockdriver.c CC:  driver/fs_blockpartition.c CC:  driver/fs_findmtddriver.c CC:  driver/fs_closemtddriver.c CC:  driver/fs_blockmerge.c CC:  mmap/fs_mmap.c CC:  mmap/fs_munmap.c CC:  mmap/fs_mmisc.c CC:  mmap/fs_msync.c CC:  mmap/fs_anonmap.c CC:  mqueue/mq_open.c CC:  mqueue/mq_close.c CC:  mqueue/mq_unlink.c CC:  mount/fs_mount.c CC:  mount/fs_umount2.c CC:  mount/fs_foreachmountpoint.c CC:  mount/fs_procfs_mount.c CC:  mount/fs_gettype.c CC:  partition/fs_partition.c CC:  procfs/fs_procfs.c CC:  procfs/fs_procfscpuinfo.c CC:  procfs/fs_procfscpuload.c CC:  procfs/fs_procfscritmon.c CC:  procfs/fs_procfsfdt.c CC:  procfs/fs_procfsiobinfo.c CC:  procfs/fs_procfsmeminfo.c CC:  procfs/fs_procfsproc.c CC:  procfs/fs_procfstcbinfo.c CC:  procfs/fs_procfsuptime.c CC:  procfs/fs_procfsutil.c CC:  procfs/fs_procfsversion.c IN: fs/libfs.a -> staging/libfs.a CC:  binfmt_globals.c CC:  binfmt_initialize.c CC:  binfmt_register.c CC:  binfmt_unregister.c CC:  binfmt_loadmodule.c CC:  binfmt_unloadmodule.c CC:  binfmt_execmodule.c CC:  binfmt_exec.c CC:  binfmt_copyargv.c CC:  binfmt_copyactions.c CC:  binfmt_dumpmodule.c CC:  binfmt_copyattr.c CC:  builtin.c IN: binfmt/libbinfmt.a -> staging/libbinfmt.a AS:  chip/espressif/esp_head.S CC:  esp32p4_boot.c CC:  esp32p4_bringup.c CC:  esp32p4_gpio.c CC:  esp32p4_appinit.c CC:  esp32p4_reset.c CPP:  /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_aliases.ld-> /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_aliases.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_flat_memory.ld-> /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_flat_memory.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_sections.rev3.ld-> /home/mi/openvela-contest/nuttx/../vendor/openvela/boards/contest2026_288_board/scripts/esp32p4_sections.rev3.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.libc.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.libc.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.libgcc.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.libgcc.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.newlib.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.eco5.newlib.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.api.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.api.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.version.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.version.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.libc-suboptimal_for_misaligned_mem.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.libc-suboptimal_for_misaligned_mem.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.systimer.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/esp_rom/esp32p4/ld/esp32p4.rom.systimer.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/soc/esp32p4/ld/esp32p4.peripherals.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/soc/esp32p4/ld/esp32p4.peripherals.ld.tmp CPP:  /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/riscv/ld/rom.api.ld-> /home/mi/openvela-contest/nuttx/arch/risc-v/src/chip/esp-hal-3rdparty/components/riscv/ld/rom.api.ld.tmp LD: nuttx
+Memory region         Used Size  Region Size  %age Used
+   tcm_idram_seg:          68 B         8 KB      0.83%
+        irom_seg:      104818 B        64 MB      0.16%
+        sram_seg:       29540 B     978880 B      3.02%
+        drom_seg:      148944 B        64 MB      0.22%
+rev3_mspi_workaround_seg:           0 B          0 B
+      lp_ram_seg:         104 B      32744 B      0.32%
+ lp_reserved_seg:           0 B         24 B      0.00%
+  extern_ram_seg:           0 B        64 MB      0.00%
+CP: nuttx.hex
+MKIMAGE: NuttX binary
+esptool.py -c esp32p4 elf2image --ram-only-header -fs 4MB -fm dio -ff 80m -o nuttx.bin nuttx
+Warning: DEPRECATED: 'esptool.py' is deprecated. Please use 'esptool' instead. The '.py' suffix will be removed in a future major release.
+esptool v5.3.1
+Creating ESP32-P4 image...
+Image has only RAM segments visible. ROM segments are hidden and SHA256 digest is not appended.
+Merged 2 ELF sections.
+Successfully created ESP32-P4 image.
+Generated: nuttx.bin
+make: 离开目录“/home/mi/openvela-contest/nuttx”
+make: 进入目录“/home/mi/openvela-contest/nuttx”
+Loaded configuration '.config'
+Minimal configuration saved to 'defconfig.tmp'
+make: 离开目录“/home/mi/openvela-contest/nuttx”
+
+[exited with code 0]

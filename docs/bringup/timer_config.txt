@@ -1,0 +1,20 @@
+ESP32-P4 Timer build configuration
+
+Official base: upstream/dev-ai-contest-2026 (fe8a435)
+PR #6 tip: 87e4f0fea36bd181a489b4d2c49f82a63476eceb
+Board source: /tmp/contest-pr6-takeover/board/contest_board
+Build configuration: vendor/openvela/boards/contest2026_288_board/configs/nsh
+
+CONFIG_ONESHOT=y
+CONFIG_ONESHOT_COUNT=y
+# CONFIG_SCHED_TICKLESS is not set
+# CONFIG_ALARM_ARCH is not set
+
+ESP HAL commit: b90b1837cb5ad24747deb4c895246037cc206ce5
+mbedTLS submodule: 582ff482038db6e4010dbf6f943d97b05ad06ea5 (mbedtls-4.0.0-22-g582ff48203)
+
+Image: nuttx/nuttx.bin
+Image size: 227700 bytes
+Image SHA-256: 2769b3f549f75de362128ee742e697a58cf7be8b93fa5d35bba882a500324796
+Build result: Generated: nuttx.bin; build.sh exit code 0
+Known warning: nxsched_usleep is implicitly declared in esp-hal-3rdparty/nuttx/include/platform/os.h; warning does not block this build.

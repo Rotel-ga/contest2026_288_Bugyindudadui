@@ -1,0 +1,15 @@
+[HOST 2026-08-19 18:52:12] wait for post-reboot enumeration
+ell (NSH)
+nsh>
+nsh>
+nsh> NuttS
+[HOST 2026-08-19 18:52:22] capture status ok=True err=
+
+nsh: NuttS: command not found
+nsh>
+nsh>
+[HOST 2026-08-19 18:52:24] send after reboot: uptime
+uptime
+00:00:41 up  0:00, load average: 0.00, 0.00, 0.00
+nsh>
+nsh>
