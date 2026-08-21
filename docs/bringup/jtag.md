@@ -57,13 +57,27 @@ OCD_ROOT=$HOME/.espressif/tools/openocd-esp32/v0.12.0-esp32-20260703
 
 以下步骤相对 openvela 工程根目录执行。
 
-### 1. 确认串口权限（首次）
+### 1. 确认串口与 USB-JTAG 权限（首次）
 
 J20 枚举为 `/dev/ttyACMx`。当前用户需在 `dialout` 组：
 
 ```bash
 sudo usermod -aG dialout $USER   # 加组后需重新登录或 newgrp dialout 生效
 ```
+
+> 权限说明（务必区分两类访问）：
+> - `dialout` 组**只解决串口设备**（`/dev/ttyACMx`）访问，即 esptool 烧录 / picocom 串口。
+> - **OpenOCD 走 libusb 直接访问 J20 的 USB-JTAG 通道**，不经过 `/dev/ttyACMx`，因此
+>   `dialout` 组对它无效。若无对应 udev 规则，OpenOCD 可能报 `LIBUSB_ERROR_ACCESS`。
+> - 正确做法：安装 Espressif OpenOCD 自带的 udev 规则（`contrib/60-openocd.rules`）到
+>   `/etc/udev/rules.d/`，然后重新加载并**拔插开发板**使规则生效：
+>   ```bash
+>   sudo cp "$OCD_ROOT/share/openocd/contrib/60-openocd.rules" /etc/udev/rules.d/
+>   sudo udevadm control --reload-rules && sudo udevadm trigger
+>   # 重新拔插 J20 USB 线
+>   ```
+> - 临时应急方案：直接 `sudo` 执行 OpenOCD（本文 `run_openocd_jtag.sh` 即以 sudo 运行）。
+>   长期建议用 udev 规则，避免每次 sudo。
 
 ### 2. 确认 chip-id（可选，确认板子在线）
 
@@ -127,5 +141,5 @@ pc (/32): 0x4fc00b10
 
 ## 分支与提交
 
-- 分支：`zhangyuxuan-openvela`
-- 基线 commit：`6cdd6b9`
+- 分支：`feat/esp32p4-jtag-uart0-final`
+- 基线 commit：`1d1d168`（upstream/dev-ai-contest-2026，已含官方 Timer follow-up）
