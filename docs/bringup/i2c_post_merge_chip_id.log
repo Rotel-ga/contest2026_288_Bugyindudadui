@@ -1,0 +1,18 @@
+esptool v5.3.1
+Serial port /dev/ttyACM0:
+Connecting...
+Connected to ESP32-P4 on /dev/ttyACM0:
+Chip type:          ESP32-P4 (revision v3.2)
+Features:           Dual Core + LP Core, 400MHz
+Crystal frequency:  40MHz
+USB mode:           USB-Serial/JTAG
+MAC:                [REDACTED_MAC]
+
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+
+Warning: ESP32-P4 has no chip ID. Reading MAC address instead.
+MAC:                [REDACTED_MAC]
+
+Hard resetting via RTS pin...

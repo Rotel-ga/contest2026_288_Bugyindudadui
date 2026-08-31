@@ -1,0 +1,4 @@
+b7277861c8b15783cc1d4f29031375bd3ebe30333a052643bdd6d653f16df38a  nuttx.bin
+image_size=235388 bytes
+flash_offset=0x2000
+upstream_commit=a0a7451b9a3e78e1b4f5a135288fa8fc5ea43558

@@ -1,0 +1,27 @@
+ESP32-P4 ES8311 I2C post-merge build configuration
+
+Upstream branch: upstream/dev-ai-contest-2026
+Upstream commit: a0a7451b9a3e78e1b4f5a135288fa8fc5ea43558
+Validation branch: test/p1-i2c-post-merge
+Build configuration: vendor/openvela/boards/contest2026_288_board/configs/i2c
+
+CONFIG_ESPRESSIF_USBSERIAL=y
+CONFIG_ESPRESSIF_I2C1=y
+CONFIG_ESPRESSIF_I2C1_SCLPIN=8
+CONFIG_ESPRESSIF_I2C1_SDAPIN=7
+CONFIG_ESPRESSIF_I2C1_MASTER_MODE=y
+# CONFIG_ESPRESSIF_I2C1_SLAVE_MODE is not set
+CONFIG_I2C_DRIVER=y
+CONFIG_DEV_GPIO=y
+CONFIG_SYSTEM_I2CTOOL=y
+CONFIG_I2CTOOL_MINBUS=1
+CONFIG_I2CTOOL_MAXBUS=1
+CONFIG_I2CTOOL_DEFFREQ=100000
+
+ESP HAL commit: b90b1837cb5ad24747deb4c895246037cc206ce5
+mbedTLS submodule: 582ff482038db6e4010dbf6f943d97b05ad06ea5 (mbedtls-4.0.0-22-g582ff48203)
+
+Image: nuttx/nuttx.bin
+Image size: 235388 bytes
+Image SHA-256: b7277861c8b15783cc1d4f29031375bd3ebe30333a052643bdd6d653f16df38a
+Build result: Generated: nuttx.bin; build.sh exit code 0
