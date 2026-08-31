@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/contest_board/src/esp32p4_bringup.c
+ * board/contest_board/src/esp32p4_board_i2c.c
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -26,11 +26,15 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_I2C_DRIVER) && \
+    defined(CONFIG_ESPRESSIF_I2C1_MASTER_MODE)
+
 #include <debug.h>
-#include <sys/mount.h>
+#include <errno.h>
 
-#include <nuttx/fs/fs.h>
+#include <nuttx/i2c/i2c_master.h>
 
+#include "espressif/esp_i2c.h"
 #include "esp32p4-function-ev-board.h"
 
 /****************************************************************************
@@ -38,69 +42,36 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: esp_bringup
+ * Name: board_i2c_init
  *
  * Description:
- *   Perform architecture-specific initialization for the L0 (minimal NSH)
- *   baseline.  Peripheral bring-up (I2C/SPI/LEDC/RMT/...) is intentionally
- *   omitted here and added incrementally once the console is up.
+ *   Initialize I2C1 and register it as /dev/i2c1.
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int esp_bringup(void)
+int board_i2c_init(void)
 {
-#if defined(CONFIG_I2C_DRIVER) && \
-    defined(CONFIG_ESPRESSIF_I2C1_MASTER_MODE)
-  int i2c_ret;
-#endif
-  int ret = OK;
+  struct i2c_master_s *i2c;
+  int ret;
 
-#ifdef CONFIG_FS_PROCFS
-  /* Mount the procfs file system */
+  i2c = esp_i2cbus_initialize(ESPRESSIF_I2C1);
+  if (i2c == NULL)
+    {
+      i2cerr("Failed to initialize I2C1\n");
+      return -ENODEV;
+    }
 
-  ret = nx_mount(NULL, "/proc", "procfs", 0, NULL);
+  ret = i2c_register(i2c, ESPRESSIF_I2C1);
   if (ret < 0)
     {
-      _err("Failed to mount procfs at /proc: %d\n", ret);
+      i2cerr("Failed to register I2C1 driver: %d\n", ret);
+      esp_i2cbus_uninitialize(i2c);
     }
-#endif
-
-#ifdef CONFIG_FS_TMPFS
-  /* Mount the tmpfs file system */
-
-  ret = nx_mount(NULL, CONFIG_LIBC_TMPDIR, "tmpfs", 0, NULL);
-  if (ret < 0)
-    {
-      _err("Failed to mount tmpfs at %s: %d\n", CONFIG_LIBC_TMPDIR, ret);
-    }
-#endif
-
-#ifdef CONFIG_DEV_GPIO
-  /* 初始化 GPIO 输出设备，注册 /dev/gpio0
-   * 只有 defconfig 里 CONFIG_DEV_GPIO=y 时才会编译这段 */
-
-  ret = esp_gpio_init();
-  if (ret < 0)
-    {
-      _err("Failed to initialize GPIO Driver: %d\n", ret);
-    }
-#endif
-
-#if defined(CONFIG_I2C_DRIVER) && \
-    defined(CONFIG_ESPRESSIF_I2C1_MASTER_MODE)
-  i2c_ret = board_i2c_init();
-  if (i2c_ret < 0)
-    {
-      _err("Failed to initialize I2C Driver: %d\n", i2c_ret);
-      if (ret >= 0)
-        {
-          ret = i2c_ret;
-        }
-    }
-#endif
 
   return ret;
 }
+
+#endif /* CONFIG_I2C_DRIVER && CONFIG_ESPRESSIF_I2C1_MASTER_MODE */

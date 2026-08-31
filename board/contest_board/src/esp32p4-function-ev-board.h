@@ -78,6 +78,22 @@
 int esp_bringup(void);
 
 /****************************************************************************
+ * Name: board_i2c_init
+ *
+ * Description:
+ *   Initialize I2C1 and register /dev/i2c1.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_I2C_DRIVER) && \
+    defined(CONFIG_ESPRESSIF_I2C1_MASTER_MODE)
+int board_i2c_init(void);
+#endif
+
+/****************************************************************************
  * Name: board_twai_setup
  *
  * Description:

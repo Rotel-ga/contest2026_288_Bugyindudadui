@@ -28,6 +28,12 @@ ifeq ($(CONFIG_DEV_GPIO),y)
   CSRCS += esp32p4_gpio.c
 endif
 
+ifeq ($(CONFIG_I2C_DRIVER),y)
+  ifeq ($(CONFIG_ESPRESSIF_I2C1_MASTER_MODE),y)
+    CSRCS += esp32p4_board_i2c.c
+  endif
+endif
+
 ifeq ($(CONFIG_BOARDCTL),y)
   CSRCS += esp32p4_appinit.c
   ifeq ($(CONFIG_BOARDCTL_RESET),y)
