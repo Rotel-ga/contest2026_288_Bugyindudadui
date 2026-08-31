@@ -1,0 +1,62 @@
+picocom v3.1
+
+port is        : /dev/ttyACM0
+flowcontrol    : none
+baudrate is    : 115200
+parity is      : none
+databits are   : 8
+stopbits are   : 1
+escape is      : C-a
+local echo is  : no
+noinit is      : no
+noreset is     : yes
+hangup is      : no
+nolock is      : no
+send_cmd is    : sz -vv
+receive_cmd is : rz -vv -E
+imap is        :
+omap is        :
+emap is        : crcrlf,delbs,
+logfile is     : none
+initstring     : none
+exit_after is  : not set
+exit is        : no
+
+!! STDIN is not a TTY !! Continue anyway...
+Type [C-a] [C-h] to see available commands
+Terminal ready
+
+nsh: s:: too many arguments
+nsh: s:: command not found
+nsh> help
+help usage:  help [-v] [<cmd>]
+
+    .           cp          exit        ls          reboot      truncate
+    [           cmp         expr        mkdir       rm          uname
+    ?           dirname     false       mkrd        rmdir       umount
+    alias       dd          fdinfo      mount       set         unset
+    unalias     df          free        mv          sleep       uptime
+    basename    dmesg       help        pidof       source      usleep
+    break       echo        hexdump     printf      test        watch
+    cat         env         kill        ps          time        xd
+    cd          exec        pkill       pwd         true        wait
+
+Builtin Apps:
+    dumpstack    gpio         i2c          nsh          sh
+nsh> ls /dev
+/dev:
+ console
+ gpio0
+ i2c1
+ null
+ random
+ ttyACM0
+ zero
+nsh> i2c --help
+i2ctool: --help: command not found
+nsh>
+** read zero bytes from stdin **
+
+Terminating...
+Skipping tty reset...
+Thanks for using picocom

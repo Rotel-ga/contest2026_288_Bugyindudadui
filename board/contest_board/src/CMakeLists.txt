@@ -26,6 +26,10 @@ if(CONFIG_DEV_GPIO)
   list(APPEND SRCS esp32p4_gpio.c)
 endif()
 
+if(CONFIG_I2C_DRIVER AND CONFIG_ESPRESSIF_I2C1_MASTER_MODE)
+  list(APPEND SRCS esp32p4_board_i2c.c)
+endif()
+
 if(CONFIG_BOARDCTL_RESET)
   list(APPEND SRCS esp32p4_reset.c)
 endif()
