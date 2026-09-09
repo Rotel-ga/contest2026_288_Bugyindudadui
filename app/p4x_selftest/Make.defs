@@ -1,0 +1,7 @@
+############################################################################
+# ESP32-P4X board self-test - Make.defs
+############################################################################
+
+ifneq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST),)
+CONFIGURED_APPS += $(APPDIR)/packages/demos/contest2026_288_p4x_selftest
+endif

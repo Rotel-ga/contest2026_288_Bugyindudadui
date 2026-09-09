@@ -1,0 +1,12 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST
+	bool "ESP32-P4X board self-test"
+	default n
+	---help---
+		Enable the ESP32-P4X board self-test application. The command
+		checks system information, monotonic timing, the GPIO software
+		control path, and the ES8311 I2C address.
