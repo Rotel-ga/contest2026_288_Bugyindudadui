@@ -1,0 +1,12 @@
+ESP32-P4X reproduction preflight
+repository=/home/mi/openvela-contest/contest2026_288_Bugyindudadui-final-materials
+[PASS] baseline commit: expected=35a953cc3673c0329b6a8de569604d492e1b64f0 head=35a953cc3673c0329b6a8de569604d492e1b64f0 ancestor=yes
+[PASS] baseline tree: expected=0598b69891e19663a0ba3f559f03293746bc7974 actual=0598b69891e19663a0ba3f559f03293746bc7974
+[PASS] required paths: all present
+[PASS] baseline paths unchanged: no changes from expected baseline
+[PASS] manifest linkfiles: expected mappings present
+[PASS] demo configuration delta: demo=i2c+selftest
+[PASS] source contract: expected devices and call chain present
+[PASS] sha256 p4x_selftest_serial_raw.log: expected=dd13caebc28022cbf8d8de60d42d06254bf57fbf9bafa851ff611e3d41a968b7 actual=dd13caebc28022cbf8d8de60d42d06254bf57fbf9bafa851ff611e3d41a968b7
+[PASS] sha256 p4x_selftest_serial_report.json: expected=f7da8240d2aff8ccf2a89ad531d3609b18b211585b03619cd4cbd1cb26174b9e actual=f7da8240d2aff8ccf2a89ad531d3609b18b211585b03619cd4cbd1cb26174b9e
+Summary: PASS=9 FAIL=0 RESULT=PASS
