@@ -1,14 +1,14 @@
 ############################################################################
-# Contest 2026 team 000 hello app - Makefile
+# ESP32-P4X board self-test - Makefile
 ############################################################################
 
 include $(APPDIR)/Make.defs
 
-PROGNAME  = hello_app
+PROGNAME  = p4x_selftest
 PRIORITY  = SCHED_PRIORITY_DEFAULT
 STACKSIZE = 2048
-MODULE    = $(CONFIG_LVX_USE_DEMO_CONTEST2026_000_HELLO_APP)
+MODULE    = $(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST)
 
-MAINSRC = hello_app_main.c
+MAINSRC = p4x_selftest_main.c
 
 include $(APPDIR)/Application.mk

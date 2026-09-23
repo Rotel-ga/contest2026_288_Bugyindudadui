@@ -1,0 +1,61 @@
+===== sync output =====
+
+nsh> [K
+===== human-1 output =====
+if p4x_selftest;then echo Z0;else echo ZN;fi
+ESP32-P4X board self-test
+[PASS] system         NuttX 0.0.0 risc-v
+[PASS] timer          500 ms delay measured 510 ms
+[PASS] gpio_sw        /dev/gpio0 low-high-low readback; restored low
+[SKIP] gpio_physical  no external test fixture
+[PASS] i2c_es8311     /dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)
+Summary: PASS=4 FAIL=0 SKIP=1 RESULT=PASS
+Z0
+nsh> [K
+===== human-2 output =====
+if p4x_selftest;then echo Z0;else echo ZN;fi
+ESP32-P4X board self-test
+[PASS] system         NuttX 0.0.0 risc-v
+[PASS] timer          500 ms delay measured 510 ms
+[PASS] gpio_sw        /dev/gpio0 low-high-low readback; restored low
+[SKIP] gpio_physical  no external test fixture
+[PASS] i2c_es8311     /dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)
+Summary: PASS=4 FAIL=0 SKIP=1 RESULT=PASS
+Z0
+nsh> 
+===== human-3 output =====
+[Kif p4x_selftest;then echo Z0;else echo ZN;fi
+ESP32-P4X board self-test
+[PASS] system         NuttX 0.0.0 risc-v
+[PASS] timer          500 ms delay measured 510 ms
+[PASS] gpio_sw        /dev/gpio0 low-high-low readback; restored low
+[SKIP] gpio_physical  no external test fixture
+[PASS] i2c_es8311     /dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)
+Summary: PASS=4 FAIL=0 SKIP=1 RESULT=PASS
+Z0
+nsh> [K
+===== json-1 output =====
+if p4x_selftest --json;then echo Z0;else echo ZN;fi
+{"schema_version":1,"application":"p4x_selftest","board":"ESP32-P4X-Function-EV-Board","tests":[{"name":"system","status":"PASS","detail":"NuttX 0.0.0 risc-v","error_code":0,"duration_ms":0},{"name":"timer","status":"PASS","detail":"500 ms delay measured 510 ms","error_code":0,"duration_ms":510},{"name":"gpio_sw","status":"PASS","detail":"/dev/gpio0 low-high-low readback; restored low","error_code":0,"duration_ms":0},{"name":"gpio_physical","status":"SKIP","detail":"no external test fixture","error_code":0,"duration_ms":0},{"name":"i2c_es8311","status":"PASS","detail":"/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)","error_code":0,"duration_ms":0}],"summary":{"pass":4,"fail":0,"skip":1},"result":"PASS"}
+Z0
+nsh> [K
+===== json-2 output =====
+if p4x_selftest --json;then echo Z0;else echo ZN;fi
+{"schema_version":1,"application":"p4x_selftest","board":"ESP32-P4X-Function-EV-Board","tests":[{"name":"system","status":"PASS","detail":"NuttX 0.0.0 risc-v","error_code":0,"duration_ms":0},{"name":"timer","status":"PASS","detail":"500 ms delay measured 510 ms","error_code":0,"duration_ms":510},{"name":"gpio_sw","status":"PASS","detail":"/dev/gpio0 low-high-low readback; restored low","error_code":0,"duration_ms":0},{"name":"gpio_physical","status":"SKIP","detail":"no external test fixture","error_code":0,"duration_ms":0},{"name":"i2c_es8311","status":"PASS","detail":"/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)","error_code":0,"duration_ms":0}],"summary":{"pass":4,"fail":0,"skip":1},"result":"PASS"}
+Z0
+nsh> 
+===== json-3 output =====
+[Kif p4x_selftest --json;then echo Z0;else echo ZN;fi
+{"schema_version":1,"application":"p4x_selftest","board":"ESP32-P4X-Function-EV-Board","tests":[{"name":"system","status":"PASS","detail":"NuttX 0.0.0 risc-v","error_code":0,"duration_ms":0},{"name":"timer","status":"PASS","detail":"500 ms delay measured 510 ms","error_code":0,"duration_ms":510},{"name":"gpio_sw","status":"PASS","detail":"/dev/gpio0 low-high-low readback; restored low","error_code":0,"duration_ms":0},{"name":"gpio_physical","status":"SKIP","detail":"no external test fixture","error_code":0,"duration_ms":0},{"name":"i2c_es8311","status":"PASS","detail":"/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)","error_code":0,"duration_ms":0}],"summary":{"pass":4,"fail":0,"skip":1},"result":"PASS"}
+Z0
+nsh> 
+===== help output =====
+[Kif p4x_selftest --help;then echo Z0;else echo ZN;fi
+Usage: p4x_selftest [--json | --help]
+Z0
+nsh> [K
+===== invalid output =====
+if p4x_selftest --invalid;then echo Z0;else echo ZN;fi
+Usage: p4x_selftest [--json | --help]
+ZN
+nsh> [K

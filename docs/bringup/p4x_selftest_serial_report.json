@@ -1,0 +1,194 @@
+{
+  "device": "/dev/ttyACM0",
+  "baudrate": 115200,
+  "nsh_status_semantics": "0=success, 1=nonzero; exact nonzero exit codes are not exposed when CONFIG_NSH_VARS is disabled",
+  "human_runs": [
+    {
+      "run": 1,
+      "nsh_status_class": 0,
+      "errors": []
+    },
+    {
+      "run": 2,
+      "nsh_status_class": 0,
+      "errors": []
+    },
+    {
+      "run": 3,
+      "nsh_status_class": 0,
+      "errors": []
+    }
+  ],
+  "json_runs": [
+    {
+      "run": 1,
+      "nsh_status_class": 0,
+      "payload": {
+        "schema_version": 1,
+        "application": "p4x_selftest",
+        "board": "ESP32-P4X-Function-EV-Board",
+        "tests": [
+          {
+            "name": "system",
+            "status": "PASS",
+            "detail": "NuttX 0.0.0 risc-v",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "timer",
+            "status": "PASS",
+            "detail": "500 ms delay measured 510 ms",
+            "error_code": 0,
+            "duration_ms": 510
+          },
+          {
+            "name": "gpio_sw",
+            "status": "PASS",
+            "detail": "/dev/gpio0 low-high-low readback; restored low",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "gpio_physical",
+            "status": "SKIP",
+            "detail": "no external test fixture",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "i2c_es8311",
+            "status": "PASS",
+            "detail": "/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)",
+            "error_code": 0,
+            "duration_ms": 0
+          }
+        ],
+        "summary": {
+          "pass": 4,
+          "fail": 0,
+          "skip": 1
+        },
+        "result": "PASS"
+      },
+      "errors": []
+    },
+    {
+      "run": 2,
+      "nsh_status_class": 0,
+      "payload": {
+        "schema_version": 1,
+        "application": "p4x_selftest",
+        "board": "ESP32-P4X-Function-EV-Board",
+        "tests": [
+          {
+            "name": "system",
+            "status": "PASS",
+            "detail": "NuttX 0.0.0 risc-v",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "timer",
+            "status": "PASS",
+            "detail": "500 ms delay measured 510 ms",
+            "error_code": 0,
+            "duration_ms": 510
+          },
+          {
+            "name": "gpio_sw",
+            "status": "PASS",
+            "detail": "/dev/gpio0 low-high-low readback; restored low",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "gpio_physical",
+            "status": "SKIP",
+            "detail": "no external test fixture",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "i2c_es8311",
+            "status": "PASS",
+            "detail": "/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)",
+            "error_code": 0,
+            "duration_ms": 0
+          }
+        ],
+        "summary": {
+          "pass": 4,
+          "fail": 0,
+          "skip": 1
+        },
+        "result": "PASS"
+      },
+      "errors": []
+    },
+    {
+      "run": 3,
+      "nsh_status_class": 0,
+      "payload": {
+        "schema_version": 1,
+        "application": "p4x_selftest",
+        "board": "ESP32-P4X-Function-EV-Board",
+        "tests": [
+          {
+            "name": "system",
+            "status": "PASS",
+            "detail": "NuttX 0.0.0 risc-v",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "timer",
+            "status": "PASS",
+            "detail": "500 ms delay measured 510 ms",
+            "error_code": 0,
+            "duration_ms": 510
+          },
+          {
+            "name": "gpio_sw",
+            "status": "PASS",
+            "detail": "/dev/gpio0 low-high-low readback; restored low",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "gpio_physical",
+            "status": "SKIP",
+            "detail": "no external test fixture",
+            "error_code": 0,
+            "duration_ms": 0
+          },
+          {
+            "name": "i2c_es8311",
+            "status": "PASS",
+            "detail": "/dev/i2c1 100 kHz address 0x18 acknowledged (data=0x00)",
+            "error_code": 0,
+            "duration_ms": 0
+          }
+        ],
+        "summary": {
+          "pass": 4,
+          "fail": 0,
+          "skip": 1
+        },
+        "result": "PASS"
+      },
+      "errors": []
+    }
+  ],
+  "auxiliary": {
+    "help": {
+      "nsh_status_class": 0,
+      "errors": []
+    },
+    "invalid": {
+      "nsh_status_class": 1,
+      "errors": []
+    }
+  },
+  "errors": []
+}
