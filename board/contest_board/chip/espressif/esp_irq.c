@@ -576,11 +576,45 @@ IRAM_ATTR void *riscv_dispatch_irq(uintreg_t mcause, uintreg_t *regs)
 
       if (irq < 0)
         {
-          /* No handle found for this CPU interrupt. This can happen
-           * if the interrupt was triggered but not properly registered.
+          intr_handler_t idf_handler;
+
+          /* No NuttX IRQ is mapped to this CPU interrupt.
+           *
+           * Vendor HAL drivers may allocate interrupts by calling
+           * esp_intr_alloc*() directly instead of going through
+           * esp_setup_irq_*().  The MIPI-CSI controller does this via
+           * dw_gdma, which even asks for a shared vector
+           * (ESP_INTR_FLAG_SHARED) with an interrupt-status filter.  Such
+           * drivers never populate g_handle_map, so the lookup above fails.
+           * Their handler is installed in the ESP-IDF table by
+           * esp_cpu_intr_set_handler() - and nothing else in this port reads
+           * that table, so the interrupt would be neither serviced nor
+           * acknowledged and the CPU would re-enter here forever.
+           *
+           * Dispatch to the ESP-IDF handler.  For a shared vector this is
+           * shared_intr_isr(), which walks the handler chain and applies the
+           * per-handler status filter the driver requested.  Clearing the
+           * peripheral status inside that handler is what de-asserts the
+           * interrupt line.
            */
 
-          irqwarn("No IRQ found for cpuint=%d cpu=%d\n", cpuint, cpu);
+          idf_handler = intr_handler_get(cpuint);
+
+          if (idf_handler != NULL)
+            {
+              idf_handler(intr_handler_get_arg(cpuint));
+              return regs;
+            }
+
+          /* Nothing can service this interrupt.  Mask it so that a
+           * level-triggered source cannot livelock the CPU: losing one
+           * interrupt is strictly better than hanging the whole system with
+           * no diagnostics (irqwarn is compiled out unless debug is on).
+           */
+
+          irqwarn("No handler for cpuint=%d cpu=%d, masking\n", cpuint, cpu);
+          esp_cpu_intr_edge_ack(cpuint);
+          esprv_int_disable(1 << cpuint);
           return regs;
         }
 

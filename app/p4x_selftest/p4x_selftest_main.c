@@ -42,6 +42,8 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/ioexpander/gpio.h>
 
+#include "p4x_camera_capture.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -56,6 +58,15 @@
 #define SELFTEST_I2C_DEVICE        "/dev/i2c1"
 #define SELFTEST_I2C_ADDRESS       0x18
 #define SELFTEST_I2C_FREQUENCY     I2C_SPEED_STANDARD
+#define SELFTEST_CAMERA_SC2336     0x30
+#define SELFTEST_CAMERA_DEVICE     "/dev/video0"
+#define SELFTEST_CAMERA_OUTPUT     "/tmp/sc2336-1280x720.rgb565"
+#define SELFTEST_CAMERA_WIDTH      1280
+#define SELFTEST_CAMERA_HEIGHT     720
+#define SELFTEST_CAMERA_FPS        30
+#define SELFTEST_SC2336_ID_H       0x3107
+#define SELFTEST_SC2336_ID_L       0x3108
+#define SELFTEST_SC2336_ID         0xcb3a
 
 #define SELFTEST_TIMER_DELAY_US    500000
 #define SELFTEST_TIMER_MIN_MS      450
@@ -400,6 +411,120 @@ static void selftest_run_i2c(FAR struct selftest_result_s *result)
     }
 }
 
+static int selftest_camera_read_reg(int fd, uint8_t address,
+                                     uint16_t reg, FAR uint8_t *value)
+{
+  struct i2c_transfer_s transfer;
+  struct i2c_msg_s messages[2];
+  uint8_t reg_bytes[2];
+
+  reg_bytes[0] = (uint8_t)(reg >> 8);
+  reg_bytes[1] = (uint8_t)reg;
+
+  /* SCCB register reads require a repeated START between the register
+   * address write and the data read. */
+  messages[0].frequency = SELFTEST_I2C_FREQUENCY;
+  messages[0].addr = address;
+  messages[0].flags = I2C_M_NOSTOP;
+  messages[0].buffer = reg_bytes;
+  messages[0].length = sizeof(reg_bytes);
+
+  messages[1].frequency = SELFTEST_I2C_FREQUENCY;
+  messages[1].addr = address;
+  messages[1].flags = I2C_M_READ;
+  messages[1].buffer = value;
+  messages[1].length = 1;
+
+  transfer.msgv = messages;
+  transfer.msgc = 2;
+
+  return ioctl(fd, I2CIOC_TRANSFER,
+               (unsigned long)((uintptr_t)&transfer));
+}
+
+static int selftest_run_camera(void)
+{
+  uint8_t id_high;
+  uint8_t id_low;
+  uint16_t chip_id;
+  int fd;
+  int ret;
+
+  printf("camera_test: reading SC2336 ID on %s at %u kHz\n",
+         SELFTEST_I2C_DEVICE, SELFTEST_I2C_FREQUENCY / 1000);
+  printf("camera_test: using SCCB repeated-start register reads\n");
+
+  fd = open(SELFTEST_I2C_DEVICE, O_RDWR);
+  if (fd < 0)
+    {
+      printf("camera_test: open failed (errno=%d)\n", selftest_errno());
+      return 1;
+    }
+
+  ret = selftest_camera_read_reg(fd, SELFTEST_CAMERA_SC2336,
+                                 SELFTEST_SC2336_ID_H, &id_high);
+  if (ret == 0)
+    {
+      ret = selftest_camera_read_reg(fd, SELFTEST_CAMERA_SC2336,
+                                     SELFTEST_SC2336_ID_L, &id_low);
+    }
+
+  if (ret < 0)
+    {
+      printf("camera_test: SC2336 chip-id read failed (errno=%d)\n",
+             selftest_errno());
+      close(fd);
+      return 1;
+    }
+
+  chip_id = ((uint16_t)id_high << 8) | id_low;
+  printf("camera_test: SC2336 chip-id=0x%04x%s\n", chip_id,
+         chip_id == SELFTEST_SC2336_ID ? " (expected)" : " (unexpected)");
+
+  ret = close(fd);
+  if (ret < 0)
+    {
+      printf("camera_test: close failed (errno=%d)\n", selftest_errno());
+      return 1;
+    }
+
+  if (chip_id != SELFTEST_SC2336_ID)
+    {
+      return 1;
+    }
+
+  printf("camera_test: PASS control bus responded\n");
+  printf("camera_test: next stage is sensor init plus MIPI CSI single-frame capture\n");
+  return 0;
+}
+
+static int selftest_run_camera_capture(FAR const int *gain)
+{
+  int ret;
+
+  /* Keep camera initialization in one sequence.  The sensor is already
+   * powered by the board, so do not probe another address before capture. */
+  printf("camera_capture: configuring SC2336 2-lane RAW8 %ux%u at %u fps\n",
+         SELFTEST_CAMERA_WIDTH, SELFTEST_CAMERA_HEIGHT,
+         SELFTEST_CAMERA_FPS);
+  if (gain != NULL)
+    {
+      printf("camera_capture: gain override fine=0x%02x coarse=0x%02x "
+             "ang=0x%02x\n", gain[0], gain[1], gain[2]);
+    }
+
+  ret = p4x_camera_capture_csi(SELFTEST_CAMERA_OUTPUT, gain);
+  if (ret < 0)
+    {
+      printf("camera_capture: CSI capture failed (errno=%d)\n", -ret);
+      return ret;
+    }
+
+  printf("camera_capture: PASS one frame output=%s\n",
+         SELFTEST_CAMERA_OUTPUT);
+  return 0;
+}
+
 static void selftest_json_string(FAR const char *value)
 {
   unsigned char character;
@@ -427,7 +552,7 @@ static void selftest_json_string(FAR const char *value)
             break;
 
           case '\n':
-            fputs("\\n", stdout);
+            fputs("\n", stdout);
             break;
 
           case '\r':
@@ -555,7 +680,13 @@ static void selftest_print_json(
 static void selftest_show_usage(FAR FILE *stream,
                                 FAR const char *program)
 {
-  fprintf(stream, "Usage: %s [--json | --help]\n", program);
+  fprintf(stream, "Usage: %s [--json | --camera | --help]\n", program);
+  fprintf(stream, "       %s --camera-capture "
+                  "[<dig_fine> <dig_coarse> <ang>]\n", program);
+  fprintf(stream, "         optional SC2336 gain override written to 0x3e07, "
+                  "0x3e06, 0x3e09\n");
+  fprintf(stream, "         (accepts 0x.. or decimal; default is the "
+                  "sensor's minimum gain)\n");
 }
 
 /****************************************************************************
@@ -566,16 +697,59 @@ int main(int argc, FAR char *argv[])
 {
   struct selftest_result_s results[SELFTEST_RESULT_COUNT];
   bool json_mode;
+  bool camera_mode;
+  bool camera_capture_mode;
+  int camera_gain[3];
+  bool camera_gain_set;
+  char *endptr;
+  long value;
   int skip_count;
   int pass_count;
   int fail_count;
+  int i;
 
   json_mode = false;
-  if (argc == 2)
+  camera_mode = false;
+  camera_capture_mode = false;
+  camera_gain_set = false;
+
+  /* "--camera-capture <fine> <coarse> <ang>": optional gain override so the
+   * sensor gain can be swept from the shell without rebuilding.
+   */
+
+  if (argc == 5 && strcmp(argv[1], "--camera-capture") == 0)
+    {
+      for (i = 0; i < 3; i++)
+        {
+          errno = 0;
+          value = strtol(argv[2 + i], &endptr, 0);
+          if (errno != 0 || endptr == argv[2 + i] || *endptr != '\0' ||
+              value < 0 || value > 0xff)
+            {
+              fprintf(stderr, "invalid gain byte: %s\n", argv[2 + i]);
+              selftest_show_usage(stderr, argv[0]);
+              return SELFTEST_EXIT_USAGE;
+            }
+
+          camera_gain[i] = (int)value;
+        }
+
+      camera_capture_mode = true;
+      camera_gain_set = true;
+    }
+  else if (argc == 2)
     {
       if (strcmp(argv[1], "--json") == 0)
         {
           json_mode = true;
+        }
+      else if (strcmp(argv[1], "--camera") == 0)
+        {
+          camera_mode = true;
+        }
+      else if (strcmp(argv[1], "--camera-capture") == 0)
+        {
+          camera_capture_mode = true;
         }
       else if (strcmp(argv[1], "--help") == 0 ||
                strcmp(argv[1], "-h") == 0)
@@ -593,6 +767,18 @@ int main(int argc, FAR char *argv[])
     {
       selftest_show_usage(stderr, argv[0]);
       return SELFTEST_EXIT_USAGE;
+    }
+
+  if (camera_capture_mode)
+    {
+      return selftest_run_camera_capture(camera_gain_set ?
+                                         camera_gain : NULL) == 0 ?
+             EXIT_SUCCESS : SELFTEST_EXIT_TEST_FAILURE;
+    }
+
+  if (camera_mode)
+    {
+      return selftest_run_camera() == 0 ? EXIT_SUCCESS : SELFTEST_EXIT_TEST_FAILURE;
     }
 
   selftest_run_system(&results[0]);

@@ -1,6 +1,5 @@
-#
 # For a description of the syntax of this configuration file,
-# see the file kconfig-language.txt in the NuttX tools repository.
+# see the kconfig-language.txt file in the NuttX tools repository.
 #
 
 config LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST
@@ -9,4 +8,9 @@ config LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST
 	---help---
 		Enable the ESP32-P4X board self-test application. The command
 		checks system information, monotonic timing, the GPIO software
-		control path, and the ES8311 I2C address.
+		control path, and the ES8311 I2C address. The --camera option
+		probes common MIPI camera control addresses on /dev/i2c1. The
+		--camera-capture option additionally requests one 640x480 RAW8
+		(30 fps) frame through the direct CSI path and writes it to
+		/tmp/sc2336-640x480.raw; it fails unless a real CSI controller
+		returns a completed frame.
