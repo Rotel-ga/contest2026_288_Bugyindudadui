@@ -94,6 +94,10 @@ if(CONFIG_ESPRESSIF_USBSERIAL)
   list(APPEND SRCS esp_usbserial.c)
 endif()
 
+if(CONFIG_ESP32P4_BOARD_LCD)
+  list(APPEND SRCS esp32p4_lcd.c)
+endif()
+
 if(CONFIG_ESP_RMT)
   list(APPEND SRCS esp_rmt.c)
   if(CONFIG_DRIVERS_RC)

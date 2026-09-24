@@ -99,6 +99,10 @@ ifeq ($(CONFIG_ESPRESSIF_USBSERIAL),y)
 	CHIP_CSRCS += esp_usbserial.c
 endif
 
+ifeq ($(CONFIG_ESP32P4_BOARD_LCD),y)
+	CHIP_CSRCS += esp32p4_lcd.c
+endif
+
 ifeq ($(CONFIG_ESP_RMT),y)
 	CHIP_CSRCS += esp_rmt.c
 	ifeq ($(CONFIG_DRIVERS_RC),y)
