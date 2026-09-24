@@ -1,0 +1,6 @@
+#ifndef __ESP32P4_FREERTOS_COMPAT_TASK_H
+#define __ESP32P4_FREERTOS_COMPAT_TASK_H
+
+#include "FreeRTOS.h"
+
+#endif

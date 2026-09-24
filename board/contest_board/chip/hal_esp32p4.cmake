@@ -171,6 +171,10 @@ set(ESP32P4_INCLUDES
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_ana_cmpr/${CHIP_SERIES}/include
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/include
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/include
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/interface
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/csi/include
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/include
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_gpio/include
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_rmt/include
     ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_rmt/src
@@ -440,6 +444,32 @@ list(
   ${ESP_HAL_3RDPARTY_REPO}/components/ulp/lp_core/shared/ulp_lp_core_lp_timer_shared.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_ana_cmpr/ana_cmpr.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/esp_dma_utils.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_dma/dw_gdma_hal.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/cam_hal.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/mipi_csi_hal.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/mipi_csi_periph.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/hal/color_hal.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/dw_gdma.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hw_support/mipi_csi_share_hw_ctrl.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/esp_cam_ctlr.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ae.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_af.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_awb.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_bf.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_blc.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ccm.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_color.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_core.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_crop.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_demosaic.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_gamma.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_hist.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_lsc.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_sharpen.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_wbg.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/isp_hal.c
+  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/isp_periph.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/gdma_link.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/gdma.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_gpio/src/gpio.c
