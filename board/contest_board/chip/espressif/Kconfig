@@ -138,6 +138,7 @@ menuconfig ESP32P4_BOARD_LCD
 	bool "ESP32-P4 MIPI-DSI LCD (EK79007 1024x600)"
 	depends on ARCH_CHIP_ESP32P4 && VIDEO_FB
 	select ESPRESSIF_SPIRAM
+	select FB_UPDATE
 	default n
 	---help---
 		Enable the MIPI-DSI EK79007 1024x600 panel driver.  Brings up the
@@ -149,7 +150,7 @@ if ESP32P4_BOARD_LCD
 
 config ESP32P4_BOARD_LCD_COLORBAR
 	bool "Show DSI built-in colour-bar test pattern (bring-up)"
-	default y
+	default n
 	---help---
 		For initial bring-up, drive the DSI host built-in colour-bar test
 		pattern instead of streaming the framebuffer.  This validates the

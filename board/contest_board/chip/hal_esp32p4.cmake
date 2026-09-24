@@ -540,6 +540,22 @@ if(CONFIG_ESPRESSIF_IDF_ENV_FPGA)
                       esp_common_include_fpga_overrides_rng)
 endif()
 
+if(CONFIG_ESP32P4_BOARD_LCD)
+  target_include_directories(arch PRIVATE ${CMAKE_CURRENT_LIST_DIR}/esp_lcd)
+  list(APPEND HAL_SRCS
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_mipi_dsi_bus.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_io_dbi.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_dpi.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_ek79007.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_ops.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_io.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_lcd/mipi_dsi_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_lcd/${CHIP_SERIES}/mipi_dsi_periph.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/hal/color_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_dma/dw_gdma_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/dw_gdma.c)
+endif()
+
 target_sources(arch PRIVATE ${HAL_SRCS})
 
 # ##############################################################################

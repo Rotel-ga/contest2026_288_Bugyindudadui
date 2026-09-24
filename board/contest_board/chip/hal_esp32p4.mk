@@ -486,3 +486,14 @@ ifeq ($(CONFIG_ESPRESSIF_IDF_ENV_FPGA),y)
   LDFLAGS += -u esp_common_include_fpga_overrides_clk
   LDFLAGS += -u esp_common_include_fpga_overrides_rng
 endif
+
+ifeq ($(CONFIG_ESP32P4_BOARD_LCD),y)
+INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)/chip/esp_lcd
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_mipi_dsi_bus.c
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_io_dbi.c
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_dpi.c
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_ek79007.c
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_ops.c
+CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_io.c
+CHIP_CSRCS += chip/$(ESP_HAL_3RDPARTY_REPO)/components/hal/color_hal.c
+endif

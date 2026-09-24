@@ -1,0 +1,224 @@
+--- a/esp_lcd_ek79007.c
++++ b/esp_lcd_ek79007.c
+@@ -7,8 +7,7 @@
+ #include "soc/soc_caps.h"
+ 
+ #if SOC_MIPI_DSI_SUPPORTED
+-#include "freertos/FreeRTOS.h"
+-#include "freertos/task.h"
++#include "lcd_nuttx.h"
+ #include "driver/gpio.h"
+ #include "esp_check.h"
+ #include "esp_lcd_panel_commands.h"
+@@ -55,8 +54,7 @@
+ esp_err_t esp_lcd_new_panel_ek79007(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
+                                     esp_lcd_panel_handle_t *ret_panel)
+ {
+-    ESP_LOGI(TAG, "version: %d.%d.%d", ESP_LCD_EK79007_VER_MAJOR, ESP_LCD_EK79007_VER_MINOR,
+-             ESP_LCD_EK79007_VER_PATCH);
++    ESP_LOGI(TAG, "EK79007: pinned esp-iot-solution driver");
+     ESP_RETURN_ON_FALSE(io && panel_dev_config && ret_panel, ESP_ERR_INVALID_ARG, TAG, "invalid arguments");
+     ek79007_vendor_config_t *vendor_config = (ek79007_vendor_config_t *)panel_dev_config->vendor_config;
+     ESP_RETURN_ON_FALSE(vendor_config && vendor_config->mipi_config.dpi_config && vendor_config->mipi_config.dsi_bus, ESP_ERR_INVALID_ARG, TAG,
+--- a/esp_lcd_mipi_dsi_bus.c
++++ b/esp_lcd_mipi_dsi_bus.c
+@@ -97,13 +97,18 @@
+     // configure the PHY PLL
+     mipi_dsi_hal_configure_phy_pll(hal, phy_clk_src_freq_hz, bus_config->lane_bit_rate_mbps);
+ 
+-    // wait for PHY initialization done
+-    while (!mipi_dsi_phy_ll_is_pll_locked(hal->host)) {
+-        vTaskDelay(pdMS_TO_TICKS(1));
++    // NuttX: return an error rather than indefinitely block board bring-up.
++    unsigned int wait_ms;
++    for (wait_ms = 0; wait_ms < 500; wait_ms++) {
++        if (mipi_dsi_phy_ll_is_pll_locked(hal->host)) break;
++        lcd_nuttx_delay_ms(1);
+     }
+-    while (!mipi_dsi_phy_ll_are_lanes_stopped(hal->host, num_data_lanes)) {
+-        vTaskDelay(pdMS_TO_TICKS(1));
++    ESP_GOTO_ON_FALSE(wait_ms < 500, ESP_ERR_TIMEOUT, err, TAG, "PHY PLL lock timeout");
++    for (wait_ms = 0; wait_ms < 100; wait_ms++) {
++        if (mipi_dsi_phy_ll_are_lanes_stopped(hal->host, num_data_lanes)) break;
++        lcd_nuttx_delay_ms(1);
+     }
++    ESP_GOTO_ON_FALSE(wait_ms < 100, ESP_ERR_TIMEOUT, err, TAG, "PHY stop-state timeout");
+ 
+     // initialize the DSI operation mode: command mode
+     mipi_dsi_host_ll_enable_video_mode(hal->host, false);
+--- a/esp_lcd_panel_dpi.c
++++ b/esp_lcd_panel_dpi.c
+@@ -6,14 +6,21 @@
+ #include <sys/param.h>
+ #include "esp_lcd_panel_interface.h"
+ #include "esp_lcd_mipi_dsi.h"
++#include "lcd_nuttx.h"
++#if LCD_NUTTX_DMA2D
+ #include "esp_async_color_convert.h"
++#endif
+ #include "esp_intr_alloc.h"
+ #include "esp_clk_tree.h"
+ #include "esp_cache.h"
+ #include "mipi_dsi_priv.h"
+ #include "esp_memory_utils.h"
+ #include "esp_private/dw_gdma.h"
++#include "hal/dw_gdma_ll.h"
++#include <nuttx/arch.h>
+ #include "hal/color_hal.h"
++#include "hal/cache_hal.h"
++#include "hal/cache_ll.h"
+ 
+ typedef struct esp_lcd_dpi_panel_t esp_lcd_dpi_panel_t;
+ 
+@@ -45,7 +52,9 @@
+     esp_lcd_panel_draw_bitmap_hook_t draw_bitmap_hook; // Draw bitmap hook function
+     void* hook_ctx; // Hook context
+     bool (*on_hook_end)(esp_lcd_panel_handle_t panel); // Callback to be invoked when the draw bitmap hook completes its operation
++#if LCD_NUTTX_DMA2D
+     async_color_convert_handle_t fbcpy_handle; // Async color convert handle used for same-format DMA2D frame buffer copy
++#endif
+ 
+ #if CONFIG_PM_ENABLE
+     esp_pm_lock_handle_t pm_lock;          // Power management lock
+@@ -65,6 +74,7 @@
+     return false;
+ }
+ 
++#if LCD_NUTTX_DMA2D
+ static bool async_fbcpy_done_cb(async_color_convert_handle_t conv_hdl, async_color_convert_event_data_t *event, void *cb_args)
+ {
+     bool need_yield = false;
+@@ -79,6 +89,8 @@
+     }
+     return need_yield;
+ }
++
++#endif
+ 
+ bool mipi_dsi_dma_trans_done_cb(dw_gdma_channel_handle_t chan, const dw_gdma_trans_done_event_data_t *event_data, void *user_data)
+ {
+@@ -226,9 +238,11 @@
+     // allocate frame buffer from PSRAM
+     size_t fb_size = panel_config->video_timing.h_size * panel_config->video_timing.v_size * bits_per_pixel / 8;
+     for (int i = 0; i < num_fbs; i++) {
+-        uint8_t *frame_buffer = heap_caps_calloc(1, fb_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
++        size_t alignment = MAX(64, cache_hal_get_cache_line_size(CACHE_LL_LEVEL_EXT_MEM, CACHE_TYPE_DATA));
++        uint8_t *frame_buffer = heap_caps_aligned_calloc(alignment, 1, fb_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+         ESP_GOTO_ON_FALSE(frame_buffer, ESP_ERR_NO_MEM, err, TAG, "no memory for frame buffer");
+         dpi_panel->fbs[i] = frame_buffer;
++        ESP_GOTO_ON_FALSE(esp_ptr_external_ram(frame_buffer), ESP_ERR_INVALID_STATE, err, TAG, "framebuffer is not in PSRAM");
+         ESP_LOGD(TAG, "fb[%d] @%p", i, frame_buffer);
+         // preset the frame buffer with black color
+         // the frame buffer address alignment is ensured by `heap_caps_calloc`
+@@ -330,6 +344,8 @@
+     mipi_dsi_brg_ll_set_multi_block_number(hal->bridge, DPI_PANEL_MIN_DMA_NODES_PER_LINK);
+     mipi_dsi_brg_ll_set_burst_len(hal->bridge, 256);
+     mipi_dsi_brg_ll_set_empty_threshold(hal->bridge, 1024 - 256);
++    // Current NuttX HAL requires explicit bridge reference clock enable.
++    mipi_dsi_brg_ll_enable_ref_clock(hal->bridge, true);
+     // enable DSI bridge
+     mipi_dsi_brg_ll_enable(hal->bridge, true);
+     mipi_dsi_brg_ll_update_dpi_config(hal->bridge);
+@@ -355,9 +371,32 @@
+     int bus_id = bus->bus_id;
+     mipi_dsi_hal_context_t *hal = &bus->hal;
+ 
++#if LCD_NUTTX_DMA2D
+     // check if the panel is using DMA2D draw bitmap hook
+     if (dpi_panel->fbcpy_handle) {
+         ESP_RETURN_ON_FALSE(false, ESP_ERR_INVALID_STATE, TAG, "please call `esp_lcd_dpi_panel_disable_dma2d()` before deleting the panel");
++    }
++#endif
++    // NuttX: prevent DMA rearming before releasing framebuffers.
++    irqstate_t flags = enter_critical_section();
++    mipi_dsi_brg_ll_enable_interrupt(hal->bridge, UINT32_MAX, false);
++    mipi_dsi_brg_ll_enable_dpi_output(hal->bridge, false);
++    mipi_dsi_brg_ll_update_dpi_config(hal->bridge);
++    if (dpi_panel->dma_chan) {
++        dw_gdma_event_callbacks_t callbacks = {0};
++        dw_gdma_channel_register_event_callbacks(dpi_panel->dma_chan, &callbacks, NULL);
++        dw_gdma_channel_enable_ctrl(dpi_panel->dma_chan, false);
++    }
++    leave_critical_section(flags);
++    if (dpi_panel->dma_chan) {
++        int channel;
++        dw_gdma_channel_get_id(dpi_panel->dma_chan, &channel);
++        unsigned int timeout;
++        for (timeout = 0; timeout < 10000; timeout++) {
++            if (!(DW_GDMA_LL_GET_HW(0)->chen0.val & (1U << channel))) break;
++            up_udelay(1);
++        }
++        ESP_RETURN_ON_FALSE(timeout < 10000, ESP_ERR_TIMEOUT, TAG, "DMA stop timeout; resources retained");
+     }
+     // disable the DPI clock
+     PERIPH_RCC_ATOMIC() {
+@@ -478,6 +517,7 @@
+     return ESP_OK;
+ }
+ 
++#if LCD_NUTTX_DMA2D
+ static esp_err_t dpi_panel_draw_bitmap_dma2d_hook(esp_lcd_panel_t *panel, const esp_lcd_draw_bitmap_hook_data_t *hook_data, void* hook_ctx)
+ {
+     ESP_LOGV(TAG, "copy draw buffer by DMA2D");
+@@ -510,6 +550,8 @@
+     return ESP_OK;
+ }
+ 
++#endif
++
+ esp_err_t esp_lcd_dpi_panel_register_hooks(esp_lcd_panel_t *panel, const esp_lcd_panel_hooks_t *hooks, void *hook_ctx)
+ {
+     ESP_RETURN_ON_FALSE(panel && hooks, ESP_ERR_INVALID_ARG, TAG, "invalid argument");
+@@ -521,6 +563,7 @@
+     return ESP_OK;
+ }
+ 
++#if LCD_NUTTX_DMA2D
+ esp_err_t esp_lcd_dpi_panel_enable_dma2d(esp_lcd_panel_handle_t panel)
+ {
+     esp_err_t ret = ESP_OK;
+@@ -573,6 +616,18 @@
+ 
+     return ESP_OK;
+ }
++
++#else
++esp_err_t esp_lcd_dpi_panel_enable_dma2d(esp_lcd_panel_handle_t panel)
++{
++    return panel ? ESP_ERR_NOT_SUPPORTED : ESP_ERR_INVALID_ARG;
++}
++
++esp_err_t esp_lcd_dpi_panel_disable_dma2d(esp_lcd_panel_handle_t panel)
++{
++    return panel ? ESP_ERR_NOT_SUPPORTED : ESP_ERR_INVALID_ARG;
++}
++#endif
+ 
+ static esp_err_t dpi_panel_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end, int y_end, const void *color_data)
+ {
+--- a/esp_lcd_panel_io.h
++++ b/esp_lcd_panel_io.h
+@@ -8,10 +8,6 @@
+ #include <stdbool.h>
+ #include "esp_err.h"
+ #include "esp_lcd_types.h"
+-#include "esp_lcd_io_i80.h"
+-#include "esp_lcd_io_i2c.h"
+-#include "esp_lcd_io_spi.h"
+-#include "esp_lcd_io_parl.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/mipi_dsi_priv.h
++++ b/mipi_dsi_priv.h
+@@ -13,9 +13,7 @@
+ #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+ #endif
+ #include "hal/mipi_dsi_periph.h"
+-#include "freertos/FreeRTOS.h"
+-#include "freertos/task.h"
+-#include "freertos/semphr.h"
++#include "lcd_nuttx.h"
+ #include "esp_err.h"
+ #include "esp_log.h"
+ #include "esp_check.h"
