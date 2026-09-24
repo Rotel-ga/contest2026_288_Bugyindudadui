@@ -1,0 +1,16 @@
+Official LCD port build validation, 2026-09-24
+Branch: feat/esp32p4-official-lcd
+Config: vendor/openvela/boards/contest2026_288_board/configs/lcd
+Command: PATH="$HOME/.local/bin:$PATH" ./build.sh vendor/openvela/boards/contest2026_288_board/configs/lcd -j8
+Exit status: 0
+Generated: nuttx.bin
+Final incremental build: no compiler warnings/errors reported.
+CONFIG_FB_UPDATE=y
+CONFIG_ESP32P4_BOARD_LCD_COLORBAR disabled
+CONFIG_ESPRESSIF_SPIRAM=y
+CONFIG_MM_KERNEL_HEAP disabled (shared flat heap)
+Upstream provenance: all 19 file hashes match after reversing openvela.patch.
+Make build tested; CMake integration not executed.
+Serial hardware unavailable; no flash/display/LVGL runtime validation performed.
+Image bytes: 599596
+Image SHA256: a2e82e74943a0a188d869a1c282d061dc75544ac310f1c93c2e8ffd67d85233b

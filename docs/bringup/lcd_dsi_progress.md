@@ -1,3 +1,8 @@
+> 2026-09-24：官方移植现位于 `feat/esp32p4-official-lcd`。
+> 以下为手写驱动历史记录，不能作为新分支的当前状态。
+> 当前来源、适配差异和验证范围见 [官方驱动移植说明](../../board/contest_board/chip/esp_lcd/README.md)。
+> 手写基线已保存到 `backup/esp32p4-handwritten-lcd`（`e55ea1d`）。
+
 # ESP32-P4X MIPI-DSI 显示驱动 — 进度与交接说明
 
 > 最后更新：2026-09-24 01:05　分支：`feat/esp32p4-lcd-dsi`
