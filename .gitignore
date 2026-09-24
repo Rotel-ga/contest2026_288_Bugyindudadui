@@ -18,3 +18,7 @@ Pcode/
 # Local generated reports; official AI Coding submissions live under logs/
 AI_CODING_LOG_SETUP_SUMMARY.md
 ai-coding-log-report.html
+
+# Python cache
+__pycache__/
+*.pyc

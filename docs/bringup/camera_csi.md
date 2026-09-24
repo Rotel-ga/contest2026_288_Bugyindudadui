@@ -247,7 +247,8 @@ tools/camera/calc_wb.py            # 读 out/camera/thumb.rgb565
 
 - **以太网通道**：做图像识别的最大缺口。整帧 1.8 MB 走串口不现实，需要以太网。
   注意 `board_emac_init()` 目前全树 0 个调用方、`configs/eth/defconfig` 也不存在，得从零搭。
-  串口 base64 传缩略图可以先作为演示过渡。
+  串口 base64 传缩略图可以先作为演示过渡——已经这么做了，见
+  [fall_alert.md](fall_alert.md)（定时采集 + 大模型跌倒判定 + 飞书告警）。
 - **AE / AWB**：当前是静态值，接入自动曝光和自动白平衡后才能适应变化的光照。
 - **`I2C_TRACE` 机制**：上面那个判别性实验成本很低（改 2 行、可 `git checkout` 退回），
   做掉能把这条边界从"机制未解释"收成明确结论。
