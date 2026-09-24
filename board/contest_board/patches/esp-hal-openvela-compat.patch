@@ -1,9 +1,44 @@
+diff --git a/components/upper_hal_dma/src/dw_gdma.c b/components/upper_hal_dma/src/dw_gdma.c
+index d1304e160fa..8366a0a3e47 100644
+--- a/components/upper_hal_dma/src/dw_gdma.c
++++ b/components/upper_hal_dma/src/dw_gdma.c
+@@ -15,8 +15,8 @@
+ // Set the maximum log level for this source file
+ #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+ #endif
+-#include "freertos/FreeRTOS.h"
+-#include "freertos/task.h"
++#include "platform/os.h"
++#include "esp_intr_alloc.h"
+ #include "soc/soc_caps.h"
+ #include "soc/interrupts.h"
+ #include "esp_log.h"
+@@ -32,6 +32,19 @@
+ #include "hal/cache_ll.h"
+ #include "esp_cache.h"
+ 
++/* openvela esp-hal port compatibility: map FreeRTOS port macros used by this
++ * IDF driver onto the platform/os.h shim primitives.
++ */
++#ifndef portMUX_TYPE
++#  define portMUX_TYPE            OS_SPINLOCK_TYPE
++#endif
++#ifndef portMUX_INITIALIZE
++#  define portMUX_INITIALIZE(l)   OS_SPINLOCK_INIT(l)
++#endif
++#ifndef portYIELD_FROM_ISR
++#  define portYIELD_FROM_ISR()    OS_PORT_YIELD_FROM_ISR()
++#endif
++
+ ESP_LOG_ATTR_TAG(TAG, "dw-gdma");
+ 
+ #if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
 diff --git a/nuttx/src/platform/os.c b/nuttx/src/platform/os.c
 index 99470d7e7c0..0d57e46bd48 100644
 --- a/nuttx/src/platform/os.c
 +++ b/nuttx/src/platform/os.c
 @@ -13,6 +13,7 @@
-
+ 
  #include <debug.h>
  #include <errno.h>
 +#include <fcntl.h>
@@ -11,9 +46,9 @@ index 99470d7e7c0..0d57e46bd48 100644
  #include <stdlib.h>
  #include <stdio.h>
 @@ -1335,9 +1336,15 @@ int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
-
+ 
    tcb->flags = TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_FREE_TCB;
-
+ 
 -  ret = nxtask_init(tcb, name, priority,
 -                    NULL, stack_size,
 -                    task_wrapper_entry, argv, NULL, NULL);

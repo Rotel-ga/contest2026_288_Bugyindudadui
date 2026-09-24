@@ -31,6 +31,10 @@
 
 #include <nuttx/fs/fs.h>
 
+#ifdef CONFIG_VIDEO_FB
+#  include <nuttx/video/fb.h>
+#endif
+
 #include "esp32p4-function-ev-board.h"
 
 /****************************************************************************
@@ -99,6 +103,19 @@ int esp_bringup(void)
         {
           ret = i2c_ret;
         }
+    }
+#endif
+
+#ifdef CONFIG_ESP32P4_BOARD_LCD
+  /* Bring up the MIPI-DSI panel and register /dev/fb0.  fb_register()
+   * invokes up_fbinitialize() (which runs esp32p4_lcd_initialize()) and
+   * then registers the framebuffer character device.
+   */
+
+  ret = fb_register(0, 0);
+  if (ret < 0)
+    {
+      _err("Failed to register framebuffer: %d\n", ret);
     }
 #endif
 

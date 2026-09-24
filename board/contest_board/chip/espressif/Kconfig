@@ -134,6 +134,39 @@ config ESPRESSIF_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY
 
 endif # ESPRESSIF_SPIRAM
 
+menuconfig ESP32P4_BOARD_LCD
+	bool "ESP32-P4 MIPI-DSI LCD (EK79007 1024x600)"
+	depends on ARCH_CHIP_ESP32P4 && VIDEO_FB
+	select ESPRESSIF_SPIRAM
+	default n
+	---help---
+		Enable the MIPI-DSI EK79007 1024x600 panel driver.  Brings up the
+		DSI PHY/host/bridge, sends the EK79007 initialisation sequence and
+		registers the framebuffer device /dev/fb0.  Requires external PSRAM
+		for the framebuffer (auto-selected).
+
+if ESP32P4_BOARD_LCD
+
+config ESP32P4_BOARD_LCD_COLORBAR
+	bool "Show DSI built-in colour-bar test pattern (bring-up)"
+	default y
+	---help---
+		For initial bring-up, drive the DSI host built-in colour-bar test
+		pattern instead of streaming the framebuffer.  This validates the
+		LDO/PHY/host/bridge/panel physical link without depending on the
+		DW-GDMA framebuffer path.  Disable once the colour bar is confirmed
+		on the panel to stream real /dev/fb0 content.
+
+config ESP32P4_BOARD_LCD_RST_GPIO
+	int "Panel hardware reset GPIO (-1 if unused)"
+	default 27
+	---help---
+		GPIO number connected to the panel reset line.  On the
+		ESP32-P4X-Function-EV-Board 7" screen adapter this is GPIO27.
+		Set to -1 if the reset is not wired to a GPIO.
+
+endif # ESP32P4_BOARD_LCD
+
 config ESPRESSIF_IDF_ENV_FPGA
 	bool "IDF FPGA Environment"
 	default n
