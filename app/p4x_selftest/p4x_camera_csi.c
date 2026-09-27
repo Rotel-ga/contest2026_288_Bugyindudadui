@@ -25,6 +25,9 @@
 #include "hal/cam_ctlr_types.h"
 #include "freertos/FreeRTOS.h"
 
+#include "jpeg_sw.h"
+#include "p4x_camera_capture.h"
+
 #define SC2336_ADDR        0x30
 #define SC2336_SDA        7
 #define SC2336_SCL        8
@@ -946,6 +949,149 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   printf("camera_capture: thumb end sum32=0x%08lx\n", (unsigned long)sum);
 }
 
+/* Software-JPEG emit switch, set by the --jpeg-capture command. */
+
+int g_p4x_jpeg_emit;
+
+/****************************************************************************
+ * Name: p4x_jpeg_emit_frame
+ *
+ * Description:
+ *   Encode the captured RGB565 frame to a baseline JPEG on the CPU and print
+ *   it as prefixed base64 lines so the host can save a .jpg directly.  Pure
+ *   software (no DMA2D/JPEG peripheral), so it is immune to the hardware-JPEG
+ *   bring-up gap and its sensor-I2C conflict.
+ *
+ ****************************************************************************/
+
+static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height)
+{
+  static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                            "abcdefghijklmnopqrstuvwxyz"
+                            "0123456789+/";
+  const int cap = 512 * 1024;
+  uint8_t *jpg;
+  uint32_t sum = 0;
+  char line[80];
+  uint8_t trio[3];
+  int nl = 0;
+  int nt = 0;
+  int n;
+  int k;
+
+  jpg = heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (jpg == NULL)
+    {
+      jpg = malloc(cap);
+    }
+
+  if (jpg == NULL)
+    {
+      printf("jpeg_sw: output alloc failed (%d bytes)\n", cap);
+      return;
+    }
+
+  n = jpeg_sw_encode_rgb565((const uint16_t *)frame, width, height, 80,
+                            jpg, cap);
+  if (n < 0)
+    {
+      printf("jpeg_sw: encode failed (overflow, cap=%d)\n", cap);
+      free(jpg);
+      return;
+    }
+
+  for (k = 0; k < n; k++)
+    {
+      sum += jpg[k];
+    }
+
+  printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx\n",
+         n, width, height, (unsigned long)sum);
+
+  for (k = 0; k < n; k++)
+    {
+      trio[nt++] = jpg[k];
+      if (nt == 3)
+        {
+          line[nl++] = b64[trio[0] >> 2];
+          line[nl++] = b64[((trio[0] & 0x3) << 4) | (trio[1] >> 4)];
+          line[nl++] = b64[((trio[1] & 0xf) << 2) | (trio[2] >> 6)];
+          line[nl++] = b64[trio[2] & 0x3f];
+          nt = 0;
+          if (nl >= 72)
+            {
+              line[nl] = '\0';
+              printf("jpg:%s\n", line);
+              nl = 0;
+            }
+        }
+    }
+
+  if (nt > 0)
+    {
+      uint8_t a = trio[0];
+      uint8_t b = (nt > 1) ? trio[1] : 0;
+      line[nl++] = b64[a >> 2];
+      line[nl++] = b64[((a & 0x3) << 4) | (b >> 4)];
+      line[nl++] = (nt > 1) ? b64[(b & 0xf) << 2] : '=';
+      line[nl++] = '=';
+    }
+
+  if (nl > 0)
+    {
+      line[nl] = '\0';
+      printf("jpg:%s\n", line);
+    }
+
+  printf("jpeg_sw: end\n");
+  free(jpg);
+}
+
+/****************************************************************************
+ * Name: p4x_jpeg_selftest
+ *
+ * Description:
+ *   Encode a synthetic RGB565 gradient to JPEG and emit it, decoupled from
+ *   the camera sensor.  Verifies the on-device software encoder end-to-end
+ *   even when the flaky SC2336 I2C init is failing.
+ *
+ ****************************************************************************/
+
+int p4x_jpeg_selftest(void)
+{
+  const int W = SC2336_WIDTH;
+  const int H = SC2336_HEIGHT;
+  uint16_t *img;
+  int x;
+  int y;
+
+  img = heap_caps_malloc((size_t)W * H * 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (img == NULL)
+    {
+      img = malloc((size_t)W * H * 2);
+    }
+  if (img == NULL)
+    {
+      printf("jpeg_sw: selftest alloc failed\n");
+      return -1;
+    }
+
+  for (y = 0; y < H; y++)
+    {
+      for (x = 0; x < W; x++)
+        {
+          int r5 = (x * 31) / (W - 1);
+          int g6 = (y * 63) / (H - 1);
+          int b5 = ((x / 16 + y / 16) & 1) ? 31 : 4;
+          img[y * W + x] = (uint16_t)((r5 << 11) | (g6 << 5) | b5);
+        }
+    }
+
+  p4x_jpeg_emit_frame((const uint8_t *)img, W, H);
+  free(img);
+  return 0;
+}
+
 int p4x_camera_capture_csi(const char *output, const int *gain)
 {
   esp_cam_ctlr_handle_t camera = NULL;
@@ -1229,6 +1375,10 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
     {
       csi_report_stats(frame);
       csi_emit_thumbnail(frame);
+      if (g_p4x_jpeg_emit)
+        {
+          p4x_jpeg_emit_frame(frame, SC2336_WIDTH, SC2336_HEIGHT);
+        }
     }
 
   if (ret == 0 && capture.finished && output != NULL)

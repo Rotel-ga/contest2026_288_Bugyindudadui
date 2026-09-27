@@ -717,8 +717,10 @@ int main(int argc, FAR char *argv[])
    * sensor gain can be swept from the shell without rebuilding.
    */
 
-  if (argc == 5 && strcmp(argv[1], "--camera-capture") == 0)
+  if (argc == 5 && (strcmp(argv[1], "--camera-capture") == 0 ||
+                    strcmp(argv[1], "--jpeg-capture") == 0))
     {
+      g_p4x_jpeg_emit = (strcmp(argv[1], "--jpeg-capture") == 0);
       for (i = 0; i < 3; i++)
         {
           errno = 0;
@@ -750,6 +752,16 @@ int main(int argc, FAR char *argv[])
       else if (strcmp(argv[1], "--camera-capture") == 0)
         {
           camera_capture_mode = true;
+        }
+      else if (strcmp(argv[1], "--jpeg-capture") == 0)
+        {
+          g_p4x_jpeg_emit = 1;
+          camera_capture_mode = true;
+        }
+      else if (strcmp(argv[1], "--jpeg-selftest") == 0)
+        {
+          return p4x_jpeg_selftest() == 0 ?
+                 EXIT_SUCCESS : SELFTEST_EXIT_TEST_FAILURE;
         }
       else if (strcmp(argv[1], "--help") == 0 ||
                strcmp(argv[1], "-h") == 0)
