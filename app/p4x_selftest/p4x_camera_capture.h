@@ -33,6 +33,17 @@ int p4x_camera_capture_one(const char *device, const char *output,
 
 int p4x_camera_capture_csi(const char *output, const int *gain);
 
+/* When non-zero, a successful capture also encodes the full-resolution frame
+ * to a baseline JPEG on the CPU (software, no DMA2D) and prints it as base64.
+ * Set by the --jpeg-capture command.
+ */
+
+extern int g_p4x_jpeg_emit;
+
+/* Encode a synthetic gradient to JPEG and emit it (sensor-independent). */
+
+int p4x_jpeg_selftest(void);
+
 #ifdef __cplusplus
 }
 #endif
