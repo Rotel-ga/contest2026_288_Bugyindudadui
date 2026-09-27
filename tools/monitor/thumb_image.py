@@ -118,18 +118,37 @@ def _to_8bit(values, full_scale):
     return [(v * 255 + full_scale // 2) // full_scale for v in values]
 
 
-def to_png(thumb, scale=1, stretch=False):
+def _grey_world(r, g, b, target=0.58):
+    """Grey-world AWB + brighten: scale each channel's mean to ``target`` (0..1),
+    neutralising the static-WB green/yellow cast and lifting the AE-less dim
+    frame.  Mean-based, so unlike a min/max stretch it is not thrown off by a
+    single bright or dark pixel."""
+    n = len(r) or 1
+    out = []
+    for ch in (r, g, b):
+        mean = sum(ch) / n / 255.0
+        gain = target / mean if mean > 1e-3 else 1.0
+        out.append([min(255, int(v * gain + 0.5)) for v in ch])
+    return out[0], out[1], out[2]
+
+
+def to_png(thumb, scale=1, stretch=False, awb=False):
     """Render the thumbnail as PNG bytes.
 
     ``scale`` nearest-neighbour upscales the image.  160x90 is small enough that
     some vision models downrank or refuse it; upscaling adds no information but
-    reliably gets the frame accepted.  ``stretch`` levels each channel to full
-    range, which helps in dim scenes - the capture path has no auto-exposure.
+    reliably gets the frame accepted.  ``awb`` applies grey-world white balance
+    and brightening (best for this AE/AWB-less sensor); ``stretch`` is the older
+    per-channel min/max levels, which can exaggerate a colour cast.
     """
     if scale < 1:
         raise ValueError("scale must be >= 1")
 
-    if stretch:
+    if awb:
+        r, g, b = _grey_world(_to_8bit(thumb.r5, 31),
+                              _to_8bit(thumb.g6, 63),
+                              _to_8bit(thumb.b5, 31))
+    elif stretch:
         r = _stretch(thumb.r5, 31)
         g = _stretch(thumb.g6, 63)
         b = _stretch(thumb.b5, 31)

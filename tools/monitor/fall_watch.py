@@ -127,6 +127,12 @@ def main():
     model.add_argument("--stretch", action="store_true",
                        help="level each channel to full range; helps in dim "
                             "scenes because the capture has no auto exposure")
+    model.add_argument("--awb", dest="awb", action="store_true", default=True,
+                       help="grey-world white balance + brighten (default ON); "
+                            "fixes the green/yellow cast and dimness of this "
+                            "AE/AWB-less sensor")
+    model.add_argument("--no-awb", dest="awb", action="store_false",
+                       help="disable the default grey-world AWB")
 
     alert = ap.add_argument_group("alert")
     alert.add_argument("--webhook",
@@ -228,7 +234,8 @@ def main():
                             text, encoding="utf-8")
                     thumb = thumb_image.parse(text)
                     png = thumb_image.to_png(thumb, scale=args.scale,
-                                             stretch=args.stretch)
+                                             stretch=args.stretch,
+                                             awb=args.awb)
                     png_path = frames_dir / f"{tag}.png"
                     png_path.write_bytes(png)
                     latest_png.write_bytes(png)
