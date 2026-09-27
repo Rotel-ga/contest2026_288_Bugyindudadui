@@ -82,11 +82,10 @@
 
 #define SC2336_CAPTURE_TIMEOUT_MS 3000
 
-/* Thumbnail export.  A full 1280x720 RGB565 frame is 1.8 MB, which would take
- * well over two minutes to shift out at 115200 baud, so send a decimated copy
- * instead: taking every 8th pixel in both axes gives 160x90 (28800 bytes,
- * ~3.5 s of base64).  That is enough to recognise the scene and prove the
- * capture is a real image rather than a zeroed buffer.
+/* Thumbnail export.  A full 1280x720 RGB565 frame is 1.8 MB, too big for the
+ * 115200 console, so send a box-averaged copy: every DIV x DIV source block is
+ * averaged into one pixel.  DIV=2 gives 640x360 (460800 bytes, ~53 s of
+ * base64); averaging instead of point-sampling removes the decimation aliasing.
  */
 
 /* Default sensor gain, written to {0x3e07, 0x3e06, 0x3e09}.
@@ -136,7 +135,7 @@
 
 #define SC2336_SKIP_FRAMES 5
 
-#define SC2336_THUMB_DIV  8
+#define SC2336_THUMB_DIV  2
 #define SC2336_THUMB_W    (SC2336_WIDTH / SC2336_THUMB_DIV)
 #define SC2336_THUMB_H    (SC2336_HEIGHT / SC2336_THUMB_DIV)
 
@@ -845,6 +844,15 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   int row;
   int col;
   int i;
+  int sr;
+  int sc;
+  int n;
+  uint32_t racc;
+  uint32_t gacc;
+  uint32_t bacc;
+  uint16_t px;
+  uint16_t avg;
+  uint8_t pxb[SC2336_BYTES_PER_PIXEL];
 
   printf("camera_capture: thumb begin w=%d h=%d fmt=rgb565le bytes=%d\n",
          SC2336_THUMB_W, SC2336_THUMB_H,
@@ -854,13 +862,37 @@ static void csi_emit_thumbnail(const uint8_t *frame)
     {
       for (col = 0; col < SC2336_THUMB_W; col++)
         {
-          off = ((size_t)row * SC2336_THUMB_DIV * SC2336_WIDTH +
-                 (size_t)col * SC2336_THUMB_DIV) * SC2336_BYTES_PER_PIXEL;
+          racc = 0;
+          gacc = 0;
+          bacc = 0;
+
+          /* Box-average the DIV x DIV source block into one RGB565 pixel. */
+
+          for (sr = 0; sr < SC2336_THUMB_DIV; sr++)
+            {
+              for (sc = 0; sc < SC2336_THUMB_DIV; sc++)
+                {
+                  off = ((size_t)(row * SC2336_THUMB_DIV + sr) * SC2336_WIDTH +
+                         (size_t)(col * SC2336_THUMB_DIV + sc)) *
+                        SC2336_BYTES_PER_PIXEL;
+                  px = (uint16_t)(frame[off] | (frame[off + 1] << 8));
+                  racc += (px >> 11) & 0x1f;
+                  gacc += (px >> 5) & 0x3f;
+                  bacc += px & 0x1f;
+                }
+            }
+
+          n = SC2336_THUMB_DIV * SC2336_THUMB_DIV;
+          avg = (uint16_t)(((racc / n) << 11) |
+                           ((gacc / n) << 5) |
+                           (bacc / n));
+          pxb[0] = (uint8_t)(avg & 0xff);
+          pxb[1] = (uint8_t)(avg >> 8);
 
           for (i = 0; i < SC2336_BYTES_PER_PIXEL; i++)
             {
-              sum += frame[off + i];
-              trio[ntrio++] = frame[off + i];
+              sum += pxb[i];
+              trio[ntrio++] = pxb[i];
 
               if (ntrio < 3)
                 {
@@ -883,7 +915,7 @@ static void csi_emit_thumbnail(const uint8_t *frame)
         }
     }
 
-  /* Flush a partial group, then a partial line.  160x90x2 is a multiple of
+  /* Flush a partial group, then a partial line.  640x360x2 is a multiple of
    * three so the padding branch is not normally taken, but keep it correct.
    */
 
