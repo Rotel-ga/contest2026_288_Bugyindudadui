@@ -587,7 +587,6 @@ static void esp_i2c_sendstart(struct esp_i2c_priv_s *priv)
 
   end_cmd.op_code = I2C_LL_CMD_END;
 
-
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, restart_cmd, 0);
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, write_cmd, 1);
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, end_cmd, 2);
@@ -706,7 +705,6 @@ static void esp_i2c_startrecv(struct esp_i2c_priv_s *priv)
   i2c_ll_hw_cmd_t end_cmd =
     {
       0
-
     };
 
   if (n > 1)
@@ -722,8 +720,10 @@ static void esp_i2c_startrecv(struct esp_i2c_priv_s *priv)
 
   read_cmd.byte_num = n;
   read_cmd.ack_val = ack_value;
+  read_cmd.op_code = I2C_LL_CMD_READ;
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, read_cmd, 0);
 
+  end_cmd.op_code = I2C_LL_CMD_END;
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, end_cmd, 1);
 
   /* Enable I2C master RX interrupt */
@@ -1236,7 +1236,8 @@ static int esp_i2c_transfer(struct i2c_master_s *dev,
           if (priv->error != 0)
             {
               i2cerr("I2C%u message=%d error=0x%lx\n",
-                     priv->id, i, (unsigned long)priv->error);
+                     (unsigned int)priv->id, i,
+                     (unsigned long)priv->error);
               ret = -EIO;
               break;
             }
@@ -1528,7 +1529,7 @@ static void esp_i2c_tracedump(struct esp_i2c_priv_s *priv)
   int i;
 
   syslog(LOG_DEBUG, "Elapsed time: %" PRId64 "\n",
-         (clock_systime_ticks() - priv->start_time));
+         (int64_t)(clock_systime_ticks() - priv->start_time));
 
   for (i = 0; i < priv->tndx; i++)
     {
@@ -1537,7 +1538,8 @@ static void esp_i2c_tracedump(struct esp_i2c_priv_s *priv)
              "%2d. STATUS: %08" PRIx32 " COUNT: %3" PRIu32 " EVENT: %s(%2d)"
              " PARM: %08" PRIx32 " TIME: %" PRId64 "\n",
              i + 1, trace->status, trace->count, g_trace_names[trace->event],
-             trace->event, trace->parm, trace->time - priv->start_time);
+             trace->event, trace->parm,
+             (int64_t)(trace->time - priv->start_time));
     }
 }
 #endif /* CONFIG_I2C_TRACE */

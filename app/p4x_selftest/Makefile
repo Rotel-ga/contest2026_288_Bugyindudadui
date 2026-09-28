@@ -15,6 +15,7 @@ CSRCS += p4x_camera_capture.c
 CSRCS += p4x_camera_csi.c
 CSRCS += jpeg_sw.c
 
+CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/espressif
 CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/freertos_compat/include
 CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/esp-hal-3rdparty/components/upper_hal_cam/include
 CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/esp-hal-3rdparty/components/upper_hal_cam/interface
