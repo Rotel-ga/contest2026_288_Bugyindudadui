@@ -65,7 +65,10 @@ def capture_frame(console, gain, timeout):
     if gain:
         command += " " + " ".join(gain)
 
-    text = console.run_command(command, timeout, CAPTURE_DONE)
+    try:
+        text = console.run_command(command, timeout, CAPTURE_DONE)
+    except board_console.BoardBusy as error:
+        raise CaptureError(str(error)) from error
     if "CSI capture failed" in text:
         line = next((l.strip() for l in text.splitlines()
                      if "CSI capture failed" in l), "CSI capture failed")

@@ -20,6 +20,15 @@ ESP_VID = "303a"
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
+# Console RX ring on the board (ESP_USBCDC_BUFFERSIZE 64 in
+# board/contest_board/chip/espressif/esp_usbserial.c) holds 63 bytes; input
+# beyond that while NSH is not reading is dropped without notice.
+RX_QUEUE_MAX = 63
+
+
+class BoardBusy(RuntimeError):
+    """The board did not get back to the NSH prompt in time."""
+
 
 def find_port():
     """Return the first tty whose udev properties carry the Espressif VID."""
@@ -109,32 +118,53 @@ class BoardConsole:
         os.write(self._fd, b"\n")
         return self.drain(seconds)
 
-    def run_command(self, command, budget, done_markers, tail=2.0):
-        """Send one NSH command, collect until a marker appears or time is up.
-
-        Returns the cleaned text.  A marker hit still waits ``tail`` seconds so
-        trailing lines (the "thumb end" checksum in particular) arrive.
-        """
-        os.write(self._fd, (command + "\n").encode())
-        buf = b""
-        end = time.time() + budget
-        markers = tuple(m.encode() if isinstance(m, str) else m
-                        for m in done_markers)
-        while time.time() < end:
+    def _read_until(self, buf, done, end):
+        """Append to ``buf`` until ``done(buf)`` holds or time.time() > end."""
+        while not done(buf) and time.time() < end:
             try:
                 chunk = os.read(self._fd, 65536)
             except BlockingIOError:
-                time.sleep(0.03)
-                continue
+                chunk = b""
             except OSError:
                 break
-            if not chunk:
+            if chunk:
+                buf += chunk
+            else:
                 time.sleep(0.03)
-                continue
-            buf += chunk
-            if any(m in buf for m in markers):
-                buf += self.drain(tail)
-                break
+        return buf
+
+    def run_command(self, command, budget, done_markers, tail=2.0):
+        """Send one NSH command, collect until a marker appears or time is up.
+
+        Returns the cleaned text of this command only.  A marker hit still
+        waits ``tail`` seconds so trailing lines arrive.  Raises BoardBusy
+        when the board does not get back to the prompt within ``budget``.
+        """
+        line = command.encode() + b"\n"
+        if len(line) > RX_QUEUE_MAX:
+            raise ValueError(f"NSH command over {RX_QUEUE_MAX} bytes: {command}")
+        end = time.time() + budget
+
+        # A capture cut short on the host keeps running on the board; input
+        # queued meanwhile past RX_QUEUE_MAX is dropped.  So send only a short
+        # echo first (its leading newline ends any stale half line) and the
+        # command once its output shows NSH is idle.  The anchor is the output
+        # line: the echoed input reads "echo @@...".
+        anchor = b"\n@@" + os.urandom(4).hex().encode()
+        os.write(self._fd, b"\necho " + anchor[1:] + b"\n")
+        buf = self._read_until(b"", lambda b: anchor in b, end)
+        at = buf.find(anchor)
+        if at < 0:
+            raise BoardBusy(f"板子 {budget:.0f}s 内没有回到 nsh 提示符"
+                            f"（上一条命令未结束或板子卡死，需复位）")
+
+        os.write(self._fd, line)
+        markers = tuple(m.encode() if isinstance(m, str) else m
+                        for m in done_markers)
+        buf = self._read_until(buf[at + len(anchor):],
+                               lambda b: any(m in b for m in markers), end)
+        if any(m in buf for m in markers):
+            buf += self.drain(tail)
         return clean(buf)
 
 
