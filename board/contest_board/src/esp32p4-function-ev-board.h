@@ -148,5 +148,14 @@ int esp_gpio_init(void);
 int board_emac_init(void);
 #endif
 
+#ifdef CONFIG_ESP32P4_BOARD_TOUCH
+int board_touch_initialize(void);
+#endif
+
+#ifdef CONFIG_ESP32P4_DESKTOP
+int board_desktop_storage_initialize(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
+
 #endif /* __BOARDS_RISCV_ESP32P4_ESP32P4_FUNCTION_EV_BOARD_SRC_ESP32P4_FUNCTION_EV_BOARD_H */

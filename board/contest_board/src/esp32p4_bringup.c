@@ -106,6 +106,14 @@ int esp_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_ESP32P4_DESKTOP
+  int storage_ret = board_desktop_storage_initialize();
+  if (storage_ret < 0)
+    {
+      _err("Desktop storage failed: %d\n", storage_ret);
+    }
+#endif
+
 #ifdef CONFIG_ESP32P4_BOARD_LCD
   /* Bring up the MIPI-DSI panel and register /dev/fb0.  fb_register()
    * invokes up_fbinitialize() (which runs esp32p4_lcd_initialize()) and
@@ -116,6 +124,18 @@ int esp_bringup(void)
   if (ret < 0)
     {
       _err("Failed to register framebuffer: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_ESP32P4_BOARD_TOUCH
+  int touch_ret = board_touch_initialize();
+  if (touch_ret < 0)
+    {
+      _err("GT911 registration failed: %d\n", touch_ret);
+      if (ret >= 0)
+        {
+          ret = touch_ret;
+        }
     }
 #endif
 

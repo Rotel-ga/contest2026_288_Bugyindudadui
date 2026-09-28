@@ -9,12 +9,18 @@
 #include <errno.h>
 #include <stdint.h>
 #include <syslog.h>
+#include <nuttx/signal.h>
+#include <sched.h>
 #include "esp_gpio.h"
+#include "esp_cache.h"
 #include "esp_ldo_regulator.h"
 #include "esp_lcd_mipi_dsi.h"
 #include "esp_lcd_ek79007.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_io.h"
+#include "mipi_dsi_priv.h"
+#include "hal/mipi_dsi_brg_ll.h"
+#include "hal/dw_gdma_ll.h"
 
 #define LCD_WIDTH  1024
 #define LCD_HEIGHT 600
@@ -36,6 +42,67 @@ static struct fb_planeinfo_s g_plane =
   .xres_virtual = LCD_WIDTH,
   .yres_virtual = LCD_HEIGHT,
 };
+
+static volatile uint32_t g_frame_count;
+
+static bool lcd_frame_done(esp_lcd_panel_handle_t panel,
+                           esp_lcd_dpi_panel_event_data_t *event,
+                           void *arg)
+{
+  g_frame_count++;
+  return false;
+}
+
+#ifdef CONFIG_ESP32P4_BOARD_LCD_BOOT_TEST
+static int lcd_diagnostic_task(int argc, char *argv[])
+{
+  static const uint16_t colors[] = {0xf800, 0x07e0, 0x001f, 0xffff};
+  static const char *names[] = {"RED", "GREEN", "BLUE", "WHITE"};
+  uint16_t *pixels = g_plane.fbmem;
+
+  nxsig_usleep(2000000);
+  for (unsigned int pass = 0; pass < 2; pass++)
+    {
+      for (unsigned int c = 0; c < 4; c++)
+        {
+          nxmutex_lock(&g_lock);
+          for (unsigned int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
+            {
+              pixels[i] = colors[c];
+            }
+
+          esp_err_t sync = esp_cache_msync(pixels, LCD_SIZE,
+                              ESP_CACHE_MSYNC_FLAG_DIR_C2M |
+                              ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+          syslog(LOG_INFO, "LCD TEST: %s pass=%u sync=%x frames=%lu pixels=%04x/%04x/%04x raw=%08lx\n",
+                 names[c], pass, sync, (unsigned long)g_frame_count,
+                 pixels[0], pixels[200 * LCD_WIDTH],
+                 pixels[400 * LCD_WIDTH],
+                 (unsigned long)g_bus->hal.bridge->int_raw.val);
+          nxmutex_unlock(&g_lock);
+          nxsig_usleep(5000000);
+        }
+    }
+
+  nxmutex_lock(&g_lock);
+  for (unsigned int y = 0; y < LCD_HEIGHT; y++)
+    {
+      for (unsigned int x = 0; x < LCD_WIDTH; x++)
+        {
+          pixels[y * LCD_WIDTH + x] = colors[y / 200];
+        }
+    }
+
+  esp_err_t sync = esp_cache_msync(pixels, LCD_SIZE,
+                      ESP_CACHE_MSYNC_FLAG_DIR_C2M |
+                      ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+  syslog(LOG_INFO, "LCD TEST: horizontal RGB restored sync=%x frames=%lu\n",
+         sync, (unsigned long)g_frame_count);
+  nxmutex_unlock(&g_lock);
+  return 0;
+}
+
+#endif
 
 static int lcd_errno(esp_err_t err)
 {
@@ -163,6 +230,7 @@ static int lcd_release(void)
 int up_fbinitialize(int display)
 {
   esp_err_t err;
+  const char *stage = "begin";
   int ret;
   if (display != 0)
     {
@@ -249,17 +317,29 @@ int up_fbinitialize(int display)
     };
 
   syslog(LOG_INFO, "LCD: official DSI/EK79007 initialization\n");
+  stage = "esp_ldo_acquire_channel";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_ldo_acquire_channel(&power, &g_ldo);
   if (err != ESP_OK) goto fail;
+  stage = "esp_lcd_new_dsi_bus";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_new_dsi_bus(&bus, &g_bus);
   if (err != ESP_OK) goto fail;
+  stage = "esp_lcd_new_panel_io_dbi";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_new_panel_io_dbi(g_bus, &io, &g_io);
   if (err != ESP_OK) goto fail;
   panel_vendor.mipi_config.dsi_bus = g_bus;
+  stage = "esp_lcd_new_panel_ek79007";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_new_panel_ek79007(g_io, &panel, &g_panel);
   if (err != ESP_OK) goto fail;
+  stage = "esp_lcd_panel_reset";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_panel_reset(g_panel);
   if (err != ESP_OK) goto fail;
+  stage = "esp_lcd_dpi_panel_get_frame_buffer";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_dpi_panel_get_frame_buffer(g_panel, 1, &g_plane.fbmem);
   if (err != ESP_OK) goto fail;
 
@@ -275,12 +355,28 @@ int up_fbinitialize(int display)
         }
     }
 
+  stage = "esp_lcd_panel_draw_bitmap";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_panel_draw_bitmap(g_panel, 0, 0, LCD_WIDTH, LCD_HEIGHT,
                                    g_plane.fbmem);
   if (err != ESP_OK) goto fail;
+  const esp_lcd_dpi_panel_event_callbacks_t events =
+    {
+      .on_frame_buf_complete = lcd_frame_done,
+    };
+  stage = "esp_lcd_dpi_panel_register_event_callbacks";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
+  err = esp_lcd_dpi_panel_register_event_callbacks(g_panel, &events, NULL);
+  if (err != ESP_OK) goto fail;
+  stage = "esp_lcd_panel_init";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
+  syslog(LOG_INFO, "LCD: starting panel scan\n");
   err = esp_lcd_panel_init(g_panel);
+  syslog(LOG_INFO, "LCD: panel init returned %x\n", err);
   if (err != ESP_OK) goto fail;
 #ifdef CONFIG_ESP32P4_BOARD_LCD_COLORBAR
+  stage = "esp_lcd_dpi_panel_set_pattern";
+  syslog(LOG_INFO, "LCD: %s\n", stage);
   err = esp_lcd_dpi_panel_set_pattern(g_panel, MIPI_DSI_PATTERN_BAR_VERTICAL);
   if (err != ESP_OK) goto fail;
 #endif
@@ -288,11 +384,14 @@ int up_fbinitialize(int display)
   esp_gpiowrite(LCD_BL_GPIO, true);
   syslog(LOG_INFO, "LCD: 1024x600 RGB565 framebuffer=%p ready\n",
          g_plane.fbmem);
+#ifdef CONFIG_ESP32P4_BOARD_LCD_BOOT_TEST
+  task_create("lcd_diag", 100, 2048, lcd_diagnostic_task, NULL);
+#endif
   nxmutex_unlock(&g_lock);
   return OK;
 
 fail:
-  syslog(LOG_ERR, "LCD: initialization failed: 0x%x\n", err);
+  syslog(LOG_ERR, "LCD: %s failed: 0x%x\n", stage, err);
   lcd_release();
   nxmutex_unlock(&g_lock);
   return lcd_errno(err);

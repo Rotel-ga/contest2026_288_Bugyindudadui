@@ -1,25 +1,3 @@
---- a/esp_lcd_ek79007.c
-+++ b/esp_lcd_ek79007.c
-@@ -7,8 +7,7 @@
- #include "soc/soc_caps.h"
- 
- #if SOC_MIPI_DSI_SUPPORTED
--#include "freertos/FreeRTOS.h"
--#include "freertos/task.h"
-+#include "lcd_nuttx.h"
- #include "driver/gpio.h"
- #include "esp_check.h"
- #include "esp_lcd_panel_commands.h"
-@@ -55,8 +54,7 @@
- esp_err_t esp_lcd_new_panel_ek79007(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
-                                     esp_lcd_panel_handle_t *ret_panel)
- {
--    ESP_LOGI(TAG, "version: %d.%d.%d", ESP_LCD_EK79007_VER_MAJOR, ESP_LCD_EK79007_VER_MINOR,
--             ESP_LCD_EK79007_VER_PATCH);
-+    ESP_LOGI(TAG, "EK79007: pinned esp-iot-solution driver");
-     ESP_RETURN_ON_FALSE(io && panel_dev_config && ret_panel, ESP_ERR_INVALID_ARG, TAG, "invalid arguments");
-     ek79007_vendor_config_t *vendor_config = (ek79007_vendor_config_t *)panel_dev_config->vendor_config;
-     ESP_RETURN_ON_FALSE(vendor_config && vendor_config->mipi_config.dpi_config && vendor_config->mipi_config.dsi_bus, ESP_ERR_INVALID_ARG, TAG,
 --- a/esp_lcd_mipi_dsi_bus.c
 +++ b/esp_lcd_mipi_dsi_bus.c
 @@ -97,13 +97,18 @@
@@ -48,7 +26,7 @@
      mipi_dsi_host_ll_enable_video_mode(hal->host, false);
 --- a/esp_lcd_panel_dpi.c
 +++ b/esp_lcd_panel_dpi.c
-@@ -6,14 +6,21 @@
+@@ -6,14 +6,22 @@
  #include <sys/param.h>
  #include "esp_lcd_panel_interface.h"
  #include "esp_lcd_mipi_dsi.h"
@@ -57,6 +35,7 @@
  #include "esp_async_color_convert.h"
 +#endif
  #include "esp_intr_alloc.h"
++#include "platform/os.h"
  #include "esp_clk_tree.h"
  #include "esp_cache.h"
  #include "mipi_dsi_priv.h"
@@ -70,7 +49,7 @@
  
  typedef struct esp_lcd_dpi_panel_t esp_lcd_dpi_panel_t;
  
-@@ -45,7 +52,9 @@
+@@ -45,7 +53,9 @@
      esp_lcd_panel_draw_bitmap_hook_t draw_bitmap_hook; // Draw bitmap hook function
      void* hook_ctx; // Hook context
      bool (*on_hook_end)(esp_lcd_panel_handle_t panel); // Callback to be invoked when the draw bitmap hook completes its operation
@@ -80,7 +59,7 @@
  
  #if CONFIG_PM_ENABLE
      esp_pm_lock_handle_t pm_lock;          // Power management lock
-@@ -65,6 +74,7 @@
+@@ -65,6 +75,7 @@
      return false;
  }
  
@@ -88,16 +67,16 @@
  static bool async_fbcpy_done_cb(async_color_convert_handle_t conv_hdl, async_color_convert_event_data_t *event, void *cb_args)
  {
      bool need_yield = false;
-@@ -79,6 +89,8 @@
-     }
+@@ -80,6 +91,8 @@
      return need_yield;
  }
-+
-+#endif
  
++#endif
++
  bool mipi_dsi_dma_trans_done_cb(dw_gdma_channel_handle_t chan, const dw_gdma_trans_done_event_data_t *event_data, void *user_data)
  {
-@@ -226,9 +238,11 @@
+     bool yield_needed = false;
+@@ -226,9 +239,11 @@
      // allocate frame buffer from PSRAM
      size_t fb_size = panel_config->video_timing.h_size * panel_config->video_timing.v_size * bits_per_pixel / 8;
      for (int i = 0; i < num_fbs; i++) {
@@ -110,7 +89,16 @@
          ESP_LOGD(TAG, "fb[%d] @%p", i, frame_buffer);
          // preset the frame buffer with black color
          // the frame buffer address alignment is ensured by `heap_caps_calloc`
-@@ -330,6 +344,8 @@
+@@ -277,7 +292,7 @@
+ #if CONFIG_LCD_DSI_ISR_CACHE_SAFE
+     isr_flags |= ESP_INTR_FLAG_IRAM;
+ #endif
+-    ESP_GOTO_ON_ERROR(esp_intr_alloc(soc_mipi_dsi_signals[bus_id].brg_irq_id, isr_flags, mipi_dsi_bridge_isr_handler,
++    ESP_GOTO_ON_ERROR(esp_os_intr_alloc(soc_mipi_dsi_signals[bus_id].brg_irq_id, isr_flags, mipi_dsi_bridge_isr_handler,
+                                      dpi_panel, &dpi_panel->brg_intr), err, TAG, "allocate DSI Bridge interrupt failed");
+ 
+     // create DMA resources
+@@ -330,6 +345,8 @@
      mipi_dsi_brg_ll_set_multi_block_number(hal->bridge, DPI_PANEL_MIN_DMA_NODES_PER_LINK);
      mipi_dsi_brg_ll_set_burst_len(hal->bridge, 256);
      mipi_dsi_brg_ll_set_empty_threshold(hal->bridge, 1024 - 256);
@@ -119,7 +107,7 @@
      // enable DSI bridge
      mipi_dsi_brg_ll_enable(hal->bridge, true);
      mipi_dsi_brg_ll_update_dpi_config(hal->bridge);
-@@ -355,9 +371,32 @@
+@@ -355,10 +372,33 @@
      int bus_id = bus->bus_id;
      mipi_dsi_hal_context_t *hal = &bus->hal;
  
@@ -127,7 +115,7 @@
      // check if the panel is using DMA2D draw bitmap hook
      if (dpi_panel->fbcpy_handle) {
          ESP_RETURN_ON_FALSE(false, ESP_ERR_INVALID_STATE, TAG, "please call `esp_lcd_dpi_panel_disable_dma2d()` before deleting the panel");
-+    }
+     }
 +#endif
 +    // NuttX: prevent DMA rearming before releasing framebuffers.
 +    irqstate_t flags = enter_critical_section();
@@ -149,10 +137,20 @@
 +            up_udelay(1);
 +        }
 +        ESP_RETURN_ON_FALSE(timeout < 10000, ESP_ERR_TIMEOUT, TAG, "DMA stop timeout; resources retained");
-     }
++    }
      // disable the DPI clock
      PERIPH_RCC_ATOMIC() {
-@@ -478,6 +517,7 @@
+         mipi_dsi_ll_enable_dpi_clock(bus_id, false);
+@@ -384,7 +424,7 @@
+         }
+     }
+     if (dpi_panel->brg_intr) {
+-        esp_intr_free(dpi_panel->brg_intr);
++        esp_os_intr_free(dpi_panel->brg_intr);
+     }
+ #if CONFIG_PM_ENABLE
+     if (dpi_panel->pm_lock) {
+@@ -478,6 +518,7 @@
      return ESP_OK;
  }
  
@@ -160,7 +158,7 @@
  static esp_err_t dpi_panel_draw_bitmap_dma2d_hook(esp_lcd_panel_t *panel, const esp_lcd_draw_bitmap_hook_data_t *hook_data, void* hook_ctx)
  {
      ESP_LOGV(TAG, "copy draw buffer by DMA2D");
-@@ -510,6 +550,8 @@
+@@ -510,6 +551,8 @@
      return ESP_OK;
  }
  
@@ -169,7 +167,7 @@
  esp_err_t esp_lcd_dpi_panel_register_hooks(esp_lcd_panel_t *panel, const esp_lcd_panel_hooks_t *hooks, void *hook_ctx)
  {
      ESP_RETURN_ON_FALSE(panel && hooks, ESP_ERR_INVALID_ARG, TAG, "invalid argument");
-@@ -521,6 +563,7 @@
+@@ -521,6 +564,7 @@
      return ESP_OK;
  }
  
@@ -177,11 +175,10 @@
  esp_err_t esp_lcd_dpi_panel_enable_dma2d(esp_lcd_panel_handle_t panel)
  {
      esp_err_t ret = ESP_OK;
-@@ -573,6 +616,18 @@
- 
+@@ -574,6 +618,18 @@
      return ESP_OK;
  }
-+
+ 
 +#else
 +esp_err_t esp_lcd_dpi_panel_enable_dma2d(esp_lcd_panel_handle_t panel)
 +{
@@ -193,22 +190,10 @@
 +    return panel ? ESP_ERR_NOT_SUPPORTED : ESP_ERR_INVALID_ARG;
 +}
 +#endif
- 
++
  static esp_err_t dpi_panel_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end, int y_end, const void *color_data)
  {
---- a/esp_lcd_panel_io.h
-+++ b/esp_lcd_panel_io.h
-@@ -8,10 +8,6 @@
- #include <stdbool.h>
- #include "esp_err.h"
- #include "esp_lcd_types.h"
--#include "esp_lcd_io_i80.h"
--#include "esp_lcd_io_i2c.h"
--#include "esp_lcd_io_spi.h"
--#include "esp_lcd_io_parl.h"
- 
- #ifdef __cplusplus
- extern "C" {
+     size_t src_x_size = x_end - x_start;
 --- a/mipi_dsi_priv.h
 +++ b/mipi_dsi_priv.h
 @@ -13,9 +13,7 @@
@@ -222,3 +207,38 @@
  #include "esp_err.h"
  #include "esp_log.h"
  #include "esp_check.h"
+--- a/esp_lcd_panel_io.h
++++ b/esp_lcd_panel_io.h
+@@ -8,10 +8,6 @@
+ #include <stdbool.h>
+ #include "esp_err.h"
+ #include "esp_lcd_types.h"
+-#include "esp_lcd_io_i80.h"
+-#include "esp_lcd_io_i2c.h"
+-#include "esp_lcd_io_spi.h"
+-#include "esp_lcd_io_parl.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+--- a/esp_lcd_ek79007.c
++++ b/esp_lcd_ek79007.c
+@@ -7,8 +7,7 @@
+ #include "soc/soc_caps.h"
+ 
+ #if SOC_MIPI_DSI_SUPPORTED
+-#include "freertos/FreeRTOS.h"
+-#include "freertos/task.h"
++#include "lcd_nuttx.h"
+ #include "driver/gpio.h"
+ #include "esp_check.h"
+ #include "esp_lcd_panel_commands.h"
+@@ -55,8 +54,7 @@
+ esp_err_t esp_lcd_new_panel_ek79007(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
+                                     esp_lcd_panel_handle_t *ret_panel)
+ {
+-    ESP_LOGI(TAG, "version: %d.%d.%d", ESP_LCD_EK79007_VER_MAJOR, ESP_LCD_EK79007_VER_MINOR,
+-             ESP_LCD_EK79007_VER_PATCH);
++    ESP_LOGI(TAG, "EK79007: pinned esp-iot-solution driver");
+     ESP_RETURN_ON_FALSE(io && panel_dev_config && ret_panel, ESP_ERR_INVALID_ARG, TAG, "invalid arguments");
+     ek79007_vendor_config_t *vendor_config = (ek79007_vendor_config_t *)panel_dev_config->vendor_config;
+     ESP_RETURN_ON_FALSE(vendor_config && vendor_config->mipi_config.dpi_config && vendor_config->mipi_config.dsi_bus, ESP_ERR_INVALID_ARG, TAG,

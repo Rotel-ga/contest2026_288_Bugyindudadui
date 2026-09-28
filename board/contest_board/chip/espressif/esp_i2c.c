@@ -563,9 +563,18 @@ static void esp_i2c_sendstart(struct esp_i2c_priv_s *priv)
 {
   struct i2c_msg_s *msg = &priv->msgv[priv->msgid];
   uint32_t fifo_val = 0;
-  i2c_ll_hw_cmd_t restart_cmd;
-  i2c_ll_hw_cmd_t write_cmd;
-  i2c_ll_hw_cmd_t end_cmd;
+  i2c_ll_hw_cmd_t restart_cmd =
+    {
+      0
+    };
+  i2c_ll_hw_cmd_t write_cmd =
+    {
+      0
+    };
+  i2c_ll_hw_cmd_t end_cmd =
+    {
+      0
+    };
 
   /* Write I2C command registers */
 
@@ -573,6 +582,7 @@ static void esp_i2c_sendstart(struct esp_i2c_priv_s *priv)
 
   write_cmd.byte_num = 1;
   write_cmd.ack_en = 1;
+  write_cmd.ack_exp = 0;
   write_cmd.op_code = I2C_LL_CMD_WRITE;
 
   end_cmd.op_code = I2C_LL_CMD_END;
@@ -688,8 +698,14 @@ static void esp_i2c_startrecv(struct esp_i2c_priv_s *priv)
   int ack_value = 0;
   struct i2c_msg_s *msg = &priv->msgv[priv->msgid];
   int n = msg->length - priv->bytes;
-  i2c_ll_hw_cmd_t read_cmd;
-  i2c_ll_hw_cmd_t end_cmd;
+  i2c_ll_hw_cmd_t read_cmd =
+    {
+      0
+    };
+  i2c_ll_hw_cmd_t end_cmd =
+    {
+      0
+    };
 
   if (n > 1)
     {
@@ -1219,7 +1235,8 @@ static int esp_i2c_transfer(struct i2c_master_s *dev,
         {
           if (priv->error != 0)
             {
-              i2cerr("Transfer error %" PRIu32 "\n", priv->error);
+              i2cerr("I2C%u message=%d error=0x%lx\n",
+                     priv->id, i, (unsigned long)priv->error);
               ret = -EIO;
               break;
             }

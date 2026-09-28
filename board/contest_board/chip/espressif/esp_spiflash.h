@@ -66,6 +66,8 @@ extern "C"
  *
  ****************************************************************************/
 
+int esp_spiflash_initialize(void);
+
 int esp_spiflash_read(uint32_t address, void *buffer, uint32_t length);
 
 /****************************************************************************
