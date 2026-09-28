@@ -28,11 +28,11 @@ MIMO_MAX_COMPLETION_TOKENS = int(
 
 FEISHU_WEBHOOK_PREFIX = "https://open.feishu.cn/open-apis/bot/v2/hook/"
 
-# The board sends a 160x90 decimated frame with static white balance and no auto
-# exposure (docs/bringup/camera_csi.md).  Telling the model that up front is what
-# keeps it from reading compression mush as a person on the floor.
+# No auto exposure and only static white balance on the sensor
+# (docs/bringup/camera_csi.md).  Telling the model that up front is what keeps
+# it from reading compression mush as a person on the floor.
 FALL_SYSTEM_PROMPT = (
-    "你是视频监控跌倒检测助手。输入是一张分辨率很低（约 160x90 放大后）的室内监控画面，"
+    "你是视频监控跌倒检测助手。输入是一张室内监控画面，分辨率可能不高，"
     "可能偏暗、偏色、有噪点。只根据画面判断是否有人处于跌倒、倒地、失去平衡即将摔倒的状态。"
     "不要把坐下、弯腰、蹲下、躺在床上或正常走动误判为跌倒。画面模糊无法辨认人体时，"
     "fall_detected 必须为 false。只输出一行 JSON，不得包含 Markdown 或其他文字："
@@ -217,12 +217,12 @@ def send_text(webhook, text):
 
 
 def send_fall_alert(webhook, reason, confidence, frame_path, frame_id,
-                    distinct=None):
+                    distinct=None, frame_desc="缩略图"):
     """Send the fall alert card.
 
     The frame itself is not attached: custom-robot webhooks cannot upload
     images (that needs an app credential and im/v1/images), so the card carries
-    the local path of the PNG that triggered it instead.
+    the local path of the image that triggered it instead.
     """
     detected_at = time.strftime("%Y-%m-%d %H:%M:%S")
     fields = [
@@ -244,7 +244,7 @@ def send_fall_alert(webhook, reason, confidence, frame_path, frame_id,
         fields.append({
             "is_short": False,
             "text": {"tag": "lark_md",
-                     "content": f"**画质自检**\n缩略图色数 {distinct}"},
+                     "content": f"**画质自检**\n色数 {distinct}"},
         })
 
     _post_feishu(webhook, {
@@ -265,7 +265,7 @@ def send_fall_alert(webhook, reason, confidence, frame_path, frame_id,
                 {"tag": "note",
                  "elements": [{"tag": "plain_text",
                                "content": "来源：ESP32-P4X SC2336 监控 + MiMo "
-                                          "视觉模型。画面为 160x90 缩略图，"
+                                          f"视觉模型。画面为 {frame_desc}，"
                                           "请以现场确认为准。"}]},
             ],
         },

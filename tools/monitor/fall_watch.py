@@ -27,10 +27,15 @@ Dry run, nothing is sent to Feishu:
 
     tools/monitor/fall_watch.py --once --dry-run
 
-Known limits, do not paper over them: the frame is a 160x90 1/8 decimation with
-static white balance and no auto exposure, so this detects "a person is lying on
-the floor" far better than it detects the moment of falling.  See
-docs/bringup/camera_csi.md and docs/bringup/fall_alert.md.
+JPEG transport (1280x720 JPEG instead of the 640x360 RGB565 thumbnail; needs
+the image-develop firmware; AWB runs on the board, --no-awb turns it off):
+
+    tools/monitor/fall_watch.py --jpeg --once --dry-run --backend mock
+
+Known limits, do not paper over them: static sensor white balance and no auto
+exposure, so this detects "a person is lying on the floor" far better than it
+detects the moment of falling.  See docs/bringup/camera_csi.md and
+docs/bringup/fall_alert.md.
 """
 
 import argparse
@@ -46,22 +51,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ai_client                                    # noqa: E402
 import board_console                                # noqa: E402
+import jpeg_frame                                   # noqa: E402
 import thumb_image                                  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 OUTDIR = REPO / "out" / "monitor"
 
 CAPTURE_COMMAND = "p4x_selftest --camera-capture"
-CAPTURE_DONE = ("PASS one frame", "CSI capture failed")
+JPEG_CAPTURE_COMMAND = "p4x_selftest --jpeg-capture"
+# The last two end the wait at once when the firmware lacks the command or
+# the option, instead of burning the whole --capture-timeout.
+CAPTURE_DONE = ("PASS one frame", "CSI capture failed",
+                "Usage: p4x_selftest", "command not found")
 
 
 class CaptureError(RuntimeError):
     """The board did not produce a frame."""
 
 
-def capture_frame(console, gain, timeout):
+def capture_frame(console, gain, timeout, jpeg=False, awb=True):
     """Run one capture on the board and return the console text."""
-    command = CAPTURE_COMMAND
+    command = JPEG_CAPTURE_COMMAND if jpeg else CAPTURE_COMMAND
+    if jpeg and not awb:
+        command += " --no-awb"
     if gain:
         command += " " + " ".join(gain)
 
@@ -69,6 +81,10 @@ def capture_frame(console, gain, timeout):
         text = console.run_command(command, timeout, CAPTURE_DONE)
     except board_console.BoardBusy as error:
         raise CaptureError(str(error)) from error
+    if "command not found" in text:
+        raise CaptureError("固件里没有 p4x_selftest，请烧录 image-develop 固件")
+    if "Usage: p4x_selftest" in text:
+        raise CaptureError(f"固件不支持 `{command}`，请烧录 image-develop 固件")
     if "CSI capture failed" in text:
         line = next((l.strip() for l in text.splitlines()
                      if "CSI capture failed" in l), "CSI capture failed")
@@ -102,6 +118,11 @@ def main():
                        help="SC2336 gain override, e.g. --gain 0x80 0x00 0x10")
     board.add_argument("--capture-timeout", type=float, default=120.0,
                        help="seconds to wait for one frame (default: 120)")
+    board.add_argument("--jpeg", action="store_true",
+                       help="capture with p4x_selftest --jpeg-capture: the "
+                            "board sends a 1280x720 JPEG (AWB done on the "
+                            "board) instead of the RGB565 thumbnail; "
+                            "--scale/--stretch do not apply")
 
     loop = ap.add_argument_group("loop")
     loop.add_argument("--interval", type=float, default=15.0,
@@ -163,6 +184,10 @@ def main():
         print("--interval 必须 > 0，--scale 和 --confirm 必须 >= 1",
               file=sys.stderr)
         return 2
+    if args.jpeg and args.stretch:
+        print("--stretch 只作用于 RGB565 缩略图，不能与 --jpeg 同用",
+              file=sys.stderr)
+        return 2
 
     if args.from_log:
         args.once = True
@@ -187,9 +212,13 @@ def main():
     frames_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
     events_path = args.outdir / "events.jsonl"
-    latest_png = args.outdir / "latest.png"
+    ext = "jpg" if args.jpeg else "png"
+    latest_image = args.outdir / f"latest.{ext}"
 
     print(f"port     : {port}")
+    print(f"format   : "
+          + (f"JPEG（板端编码，AWB {'开' if args.awb else '关'}）"
+             if args.jpeg else "RGB565 缩略图 → PNG"))
     print(f"backend  : {args.backend}"
           + (f" ({args.proxy_url})" if args.backend == "proxy" else ""))
     print(f"interval : {args.interval:g}s   cooldown: {args.cooldown:g}s   "
@@ -232,19 +261,34 @@ def main():
                             args.from_log.read_bytes())
                     else:
                         text = capture_frame(console, args.gain,
-                                            args.capture_timeout)
+                                            args.capture_timeout,
+                                            jpeg=args.jpeg, awb=args.awb)
                         (logs_dir / f"{tag}.log").write_text(
                             text, encoding="utf-8")
-                    thumb = thumb_image.parse(text)
-                    png = thumb_image.to_png(thumb, scale=args.scale,
-                                             stretch=args.stretch,
-                                             awb=args.awb)
-                    png_path = frames_dir / f"{tag}.png"
-                    png_path.write_bytes(png)
-                    latest_png.write_bytes(png)
+                    if args.jpeg:
+                        frame = jpeg_frame.parse(text)
+                        image = frame.data
+                        distinct = frame.distinct
+                        frame_desc = f"{frame.width}x{frame.height} JPEG"
+                        detail = {"format": "jpeg", "width": frame.width,
+                                  "height": frame.height,
+                                  "bytes": frame.size, "awb": frame.awb,
+                                  "enc_ms": frame.enc_ms}
+                    else:
+                        thumb = thumb_image.parse(text)
+                        image = thumb_image.to_png(thumb, scale=args.scale,
+                                                   stretch=args.stretch,
+                                                   awb=args.awb)
+                        distinct = thumb.distinct
+                        frame_desc = f"{thumb.width}x{thumb.height} 缩略图"
+                        detail = {"format": "png", "bytes": len(image)}
+                    image_path = frames_dir / f"{tag}.{ext}"
+                    image_path.write_bytes(image)
+                    latest_image.write_bytes(image)
                     failure_streak = 0
                     failure_notified = False
-                except (CaptureError, thumb_image.ThumbError) as error:
+                except (CaptureError, thumb_image.ThumbError,
+                        jpeg_frame.JpegError) as error:
                     failure_streak += 1
                     print(f"[{now}] #{frame_id} 采集失败（连续 {failure_streak} "
                           f"次）：{error}", file=sys.stderr)
@@ -269,14 +313,15 @@ def main():
                 event = {
                     "time": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "frame_id": frame_id,
-                    "frame": str(png_path),
-                    "distinct": thumb.distinct,
+                    "frame": str(image_path),
+                    "distinct": distinct,
+                    **detail,
                 }
 
                 try:
                     raw = client.analyze(
-                        base64.b64encode(png).decode("ascii"),
-                        frame_id, "png")
+                        base64.b64encode(image).decode("ascii"),
+                        frame_id, "jpeg" if args.jpeg else "png")
                     fall, confidence, reason = ai_client.parse_verdict(raw)
                     event.update(ok=True, fall_detected=fall,
                                  confidence=confidence, reason=reason,
@@ -291,8 +336,13 @@ def main():
 
                 if event.get("ok"):
                     verdict = "跌倒" if fall else "正常"
+                    size = (f" {frame_desc} {len(image) // 1024}KB"
+                            + (f" 编码={frame.enc_ms}ms"
+                               if args.jpeg and frame.enc_ms >= 0 else ""))
                     print(f"[{now}] #{frame_id} {verdict} "
-                          f"conf={confidence:.2f} 色数={thumb.distinct} "
+                          f"conf={confidence:.2f} "
+                          f"色数={distinct if distinct >= 0 else '?'}{size} "
+                          f"耗时={time.monotonic() - started:.1f}s "
                           f"原因={reason}")
 
                 accepted = fall and confidence >= args.min_confidence
@@ -309,8 +359,9 @@ def main():
                     else:
                         try:
                             ai_client.send_fall_alert(
-                                webhook, reason, confidence, str(png_path),
-                                frame_id, thumb.distinct)
+                                webhook, reason, confidence, str(image_path),
+                                frame_id, distinct if distinct >= 0 else None,
+                                frame_desc)
                             last_alert = time.monotonic()
                             event["alert"] = "sent"
                             print("  已发送飞书跌倒告警。")
@@ -327,6 +378,7 @@ def main():
                     fp.write(json.dumps(event, ensure_ascii=False) + "\n")
 
                 prune(frames_dir, "*.png", args.keep)
+                prune(frames_dir, "*.jpg", args.keep)
                 prune(logs_dir, "*.log", args.keep)
 
                 if args.once:
