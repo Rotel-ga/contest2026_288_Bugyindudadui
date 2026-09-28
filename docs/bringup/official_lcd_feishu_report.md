@@ -2,7 +2,7 @@
 
 ## 0. 交给其他 AI：先看这里，编译 / 烧录 / 验证
 
-**2026-09-28 当前交接入口：**以第 45 节为准。当前分支为 `merge/esp32p4-desktop-camera`，组合修复已提交为 `e465751` 并推送至 Rotel-ga 同名远程分支；第 0 节早期分支要求与第 42～44 节“未提交/未推送”描述属于当时状态。最新 USB 中断发送版已编译，真机速度和连续采集仍待验证。
+**2026-09-28 当前交接入口：**优先阅读第 46.6 节。当前分支 `merge/esp32p4-desktop-camera`，本地 HEAD 与最近核对的 Rotel-ga 同名远程分支均为 `feae695`，已含面板控制和真实识别接入。后台 service 已取消，当前使用终端手动启动脚本，再由面板开始/停止按钮控制。此次回退只改主机运行方式，已有面板控制固件无需重烧。此前章节中的分支、未推送及服务状态均为阶段历史。
 
 本节命令针对当前机器，使用 **Bash** 执行。工作区是 `/home/mi/Developer/openvela`，比赛 Git 仓库是其下的 `contest2026_288_Bugyindudadui`，不要在工作区根目录执行该项目的 Git 操作。
 
@@ -2765,3 +2765,88 @@ tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend
 ```
 
 运行前在用户终端配置 MIMO_API_KEY。需要飞书告警时配置 FEISHU_WEBHOOK_URL 并去掉 --dry-run；密钥和 webhook 不写进源码。电脑需要保持运行，板子按钮不会自行启动电脑上的进程。此更新未提交/推送。
+
+
+### 46.2 指定命令默认受面板按钮控制
+
+用户明确指定 `python tools/monitor/fall_watch.py --backend direct --interval 15`。已将串口模式默认设为 panel-control，使该原样命令启动后等待板子“开始监控”；停止按钮在本轮完成后阻止下一轮。新增 --autostart 保留直接采集行为，--from-log 仍直接离线回放，显式 --panel-control 与 --from-log 互斥。
+
+间隔保持 15 秒、后端 direct、默认 RGB565→PNG；未自动添加 JPEG、dry-run 或 once。不更改现有模型/飞书凭据。电脑必须预先运行脚本，板端仍使用 fgctl 状态邮箱。本次仅改主机默认行为及文档，无需重新烧录已有面板控制固件，未启动真实模型调用或发送告警，未提交/推送。
+
+### 46.3 用户后台服务（免终端日常操作）
+
+用户要求电脑无需终端操作、由面板控制 JPEG/direct/15 秒监控。已新增 service/run_panel_monitor.py、install_user_service.py 和空凭据模板。本机用户级 fall-monitor.service 已安装、systemd 校验通过、enabled 且 loaded；当前 inactive，因为尚未配置可用凭据。用户提供的是含星号的打码值，未写入源码或配置作为真实凭据。
+
+服务配置在 ~/.config/systemd/user/fall-monitor.service，私有环境文件 ~/.config/fall-monitor/environment 权限 600。登录后自动运行，不配置未登录开机运行；电脑需保持登录及 USB 连接。执行固定参数 --panel-control --jpeg --backend direct --interval 15 --capture-timeout 120。进程退出 10 秒后重试，缺凭据返回 78 不重试；不自动复位板子。
+
+首次需用户在本机环境文件填写真实凭据，再启动服务。安装过程曾有路径引号格式错误，已修复并通过 systemd 校验；enable 时出现 watch descriptor 资源提示，但后续确认 enabled/loaded。未执行真实模型或飞书调用。本轮代码、文档尚未提交/推送，服务尚未完成带板验证。
+
+### 46.4 后台服务启动确认（2026-09-28 21:08）
+
+用户完成本机私有凭据填写后，已启动 fall-monitor.service。检查结果 loaded/active/running，NRestarts=0；运行参数 JPEG + direct + interval=15，飞书告警开启。日志确认连接 /dev/ttyACM0、面板控制就绪，并读到“停止监控 (rev=16)”，说明后台已与板端 fgctl 握手，当前等待用户点击开始。未主动触发采集、模型请求或飞书消息；API 凭据有效性须首次真实调用确认。
+
+systemd 仍报告 inotify watch descriptor 资源不足；服务实际运行且面板通信成功，未在本轮改动系统资源限制。密钥和 Webhook 内容未写入文档或仓库。
+
+### 46.5 回退后台服务，恢复手动启动（2026-09-28）
+
+用户明确取消后台 service，指定手动命令：
+
+```bash
+tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120
+```
+
+已执行 systemctl --user disable --now fall-monitor.service，移除用户 unit 与安装备份并 daemon-reload；最终状态 LoadState=not-found、ActiveState=inactive、SubState=dead。仓库 tools/monitor/service 目录已移除。fall_watch.py 恢复到 feae695 的显式 --panel-control 行为，不再默认等待按钮；README 更新为手动启动说明。保留原生按钮、fgctl、JPEG、真实识别及状态回传，不改固件、不需重烧。16 项测试通过。
+
+~/.config/fall-monitor/environment 私有凭据文件保留，未显示内容，不再由后台服务加载；手动脚本读取当前终端环境变量，dry-run 不要求飞书 Webhook。第 46.2～46.4 节作为历史记录，当前以本节为准。此次回退未提交/推送。
+
+
+### 46.6 当前交付状态与是否需要烧录（2026-09-28）
+
+当前工作方式以本节为准：**手动运行电脑脚本 → 面板按钮控制开始/停止 → JPEG 采集 → direct 真实识别**。不使用后台 service，不自动登录启动。电脑和 USB 连接仍然是监控链路的一部分，尚未移植为板端独立联网识别。
+
+#### 本地与远程
+
+最近一次只读查询远程确认，本地 HEAD 与 Rotel-ga 的 `merge/esp32p4-desktop-camera` 均为：
+
+```text
+feae69520c81852faf8cc6b6e8332acb3705fa73
+feat: control host fall monitoring from the native desktop panel
+```
+
+[远程分支](https://github.com/Rotel-ga/contest2026_288_Bugyindudadui/tree/merge/esp32p4-desktop-camera)
+
+功能源码一致；后台 service 从未推送，现已从本机配置和工作区移除。后续本地文档更新尚未推送。构建标记 `.built` 不属于源码，不提交。本次检查发现 `docs/bringup/fall_alert.md` 另有本地修改，予以保留，本次不覆盖。
+
+#### 当前启动命令
+
+在终端配置好 `MIMO_API_KEY` 后执行：
+
+```bash
+cd /home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+
+tools/monitor/fall_watch.py \
+  --port /dev/ttyACM0 \
+  --panel-control \
+  --jpeg \
+  --backend direct \
+  --dry-run \
+  --interval 10 \
+  --capture-timeout 120
+```
+
+- 脚本启动后等待面板“开始监控”，点击后循环采集与识别。
+- “停止监控”在当前轮采集/识别完成后停止后续循环，脚本继续等待；Ctrl+C 退出电脑脚本。
+- `direct` 是真实模型调用；`dry-run` 仅关闭飞书告警，不关闭模型请求。
+- `interval 10` 是目标启动间隔；本轮超过 10 秒时不并发堆积采集。
+- 不传 `--panel-control` 则直接开始采集。不要同时运行多个监控进程或其他串口读取程序。
+- 已校验的 JPEG 保存到 `out/monitor/frames/`，最新图为 `out/monitor/latest.jpg`；串口证据在 `out/monitor/logs/`。
+
+#### 是否需要重新烧录
+
+**仅取消后台 service、改回上述手动启动方式，不需要重编译或烧录。** 板端按钮、fgctl、摄像头和识别结果回传功能没有因此变更；Git 提交/推送也不自动要求烧录。
+
+若板上仍是已使用的 `artifacts/merge-desktop-camera/20260928-panel-direct/nuttx.bin`，直接运行脚本即可。该归档镜像为 739056 字节，SHA-256 为 `d44f6a3ce08888354eeeca4e225acdaa0183fdde101e3aef1049d90b443bdfef`。只有后来烧录了其他镜像、板上缺少面板控制功能时才需要重新烧录；本次未读取板上 Flash 来重新确认固件身份。
+
+已有日志证据支持按钮触发真实识别：21:16 一轮接收 1280×720 JPEG 约 125 KB，编码约 1.25 秒，整轮约 16.2 秒，模型返回了真实判断。该记录不代表识别准确率、长期稳定性或飞书送达已完成验收。
+
+本次仅更新本地开发报告与交接入口，未编译、未烧录、未提交、未推送。
