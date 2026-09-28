@@ -23,11 +23,20 @@ extern "C"
  * into `out` (capacity `out_cap` bytes).
  *
  * quality: 1..100 (higher = better/larger).
+ * gain_q16: per-channel {R, G, B} gain, 65536 = 1.0; NULL for none.
  * Returns the JPEG length in bytes, or -1 on bad args / output overflow.
  */
 
 int jpeg_sw_encode_rgb565(const uint16_t *rgb565, int width, int height,
-                          int quality, uint8_t *out, int out_cap);
+                          int quality, const uint32_t *gain_q16,
+                          uint8_t *out, int out_cap);
+
+/* Grey-world gains (same math as tools/monitor/thumb_image._grey_world):
+ * scale each channel mean to target_permille / 1000.
+ */
+
+void jpeg_sw_grey_world(const uint16_t *rgb565, int npx, int target_permille,
+                        uint32_t gain_q16[3]);
 
 #ifdef __cplusplus
 }
