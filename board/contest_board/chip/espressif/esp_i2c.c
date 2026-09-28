@@ -587,6 +587,7 @@ static void esp_i2c_sendstart(struct esp_i2c_priv_s *priv)
 
   end_cmd.op_code = I2C_LL_CMD_END;
 
+
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, restart_cmd, 0);
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, write_cmd, 1);
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, end_cmd, 2);
@@ -705,6 +706,7 @@ static void esp_i2c_startrecv(struct esp_i2c_priv_s *priv)
   i2c_ll_hw_cmd_t end_cmd =
     {
       0
+
     };
 
   if (n > 1)
@@ -720,10 +722,8 @@ static void esp_i2c_startrecv(struct esp_i2c_priv_s *priv)
 
   read_cmd.byte_num = n;
   read_cmd.ack_val = ack_value;
-  read_cmd.op_code = I2C_LL_CMD_READ;
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, read_cmd, 0);
 
-  end_cmd.op_code = I2C_LL_CMD_END;
   i2c_ll_master_write_cmd_reg(priv->ctx->dev, end_cmd, 1);
 
   /* Enable I2C master RX interrupt */
