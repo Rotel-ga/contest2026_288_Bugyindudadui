@@ -1,7 +1,7 @@
 # tools/monitor — 定时采集 + 大模型跌倒判定 + 飞书告警
 
 PC 端一条链路：板子每隔几秒采一帧 → 缩略图还原成 PNG → MiMo 视觉模型判断是否有人摔倒
-→ 判定跌倒时推一张飞书告警卡片。板上固件不需要任何改动。
+→ 判定跌倒时推一张飞书告警卡片。普通命令行采集使用现有摄像头固件；面板按钮控制需要包含 `fgctl` 的面板固件。
 
 完整说明（数据通路、时序限制、已知边界、排障表）见
 [`docs/bringup/fall_alert.md`](../../docs/bringup/fall_alert.md)。
@@ -45,3 +45,12 @@ tools/monitor/fall_watch.py --jpeg --once --dry-run --backend mock
   变成"尽可能快"，不会堆积。
 - 判定的是"有人躺在地上"这个结果状态，不是摔倒的瞬间动作；传感器无 AE、只有
   静态白平衡。准确率没有量化过，别当成成品指标用。
+
+
+## 手动启动，面板按钮控制
+
+```bash
+tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120
+```
+
+终端手动运行后等待面板开始/停止按钮。使用真实模型识别，dry-run 仅禁止飞书告警。停止在本轮完成后生效；Ctrl+C 退出脚本。不使用后台 service，不登录自动启动。不传 --panel-control 时保持直接采集行为。终端需配置 MIMO_API_KEY。

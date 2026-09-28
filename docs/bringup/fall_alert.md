@@ -8,8 +8,8 @@ MiMo 视觉模型判断有没有人摔倒，判定为跌倒时向飞书群推一
 ```
 sudo usermod -aG dialout "$USER"
 newgrp dialout
-export MIMO_API_KEY=sk-cf62kyintenmp3ea2f8k0xlsla4o2fexks6vjazc683fzxs6
-export FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/1c09fce3-fcb8-4bb3-beac-653b7ea56a27
+export MIMO_API_KEY="<your-api-key>"
+export FEISHU_WEBHOOK_URL="<your-feishu-webhook-url>"
 python tools/monitor/fall_watch.py --backend direct --interval 10
 ```
 
@@ -45,8 +45,8 @@ SC2336 --MIPI-CSI--> ISP --> PSRAM 整帧 1280x720 RGB565 (1.8 MB)
 两个凭据都从环境变量读，**不写进源码**：
 
 ```bash
-export MIMO_API_KEY=sk-...                                         # 模型 API Key
-export FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxxx
+export MIMO_API_KEY="<your-api-key>"
+export FEISHU_WEBHOOK_URL="<your-feishu-webhook-url>"
 ```
 
 Webhook 等同于群机器人的密钥。若机器人开了关键词校验，注意卡片标题里含「跌倒」「告警」。
@@ -57,18 +57,18 @@ Webhook 等同于群机器人的密钥。若机器人开了关键词校验，注
 
 ```bash
 # 终端 1
-export MIMO_API_KEY=sk-...
+export MIMO_API_KEY="<your-api-key>"
 tools/monitor/mimo_proxy.py
 
 # 终端 2
-export FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxxx
+export FEISHU_WEBHOOK_URL="<your-feishu-webhook-url>"
 tools/monitor/fall_watch.py --interval 10
 ```
 
 单终端、不起代理：
 
 ```bash
-export MIMO_API_KEY=sk-... FEISHU_WEBHOOK_URL=...
+export MIMO_API_KEY="<your-api-key>"
 tools/monitor/fall_watch.py --backend direct --interval 10
 ```
 
