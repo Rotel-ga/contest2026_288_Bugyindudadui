@@ -9,14 +9,14 @@
 #include <string.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/mutex.h>
+#include <nuttx/spinlock.h>
 #include <nuttx/semaphore.h>
 
 #include "freertos/FreeRTOS.h"
 
 struct esp_freertos_queue_s
 {
-  mutex_t lock;
+  spinlock_t lock;
   sem_t items;
   sem_t slots;
   uint8_t *storage;
@@ -33,7 +33,7 @@ QueueHandle_t xQueueCreateWithCaps(UBaseType_t length, UBaseType_t item_size,
 
   (void)caps;
 
-  if (length == 0 || item_size == 0)
+  if (length == 0 || item_size == 0 || length > SIZE_MAX / item_size)
     {
       return NULL;
     }
@@ -51,7 +51,7 @@ QueueHandle_t xQueueCreateWithCaps(UBaseType_t length, UBaseType_t item_size,
       return NULL;
     }
 
-  nxmutex_init(&queue->lock);
+  spin_lock_init(&queue->lock);
   nxsem_init(&queue->items, 0, 0);
   nxsem_init(&queue->slots, 0, length);
   queue->length = length;
@@ -87,11 +87,11 @@ static BaseType_t queue_send_internal(QueueHandle_t queue, const void *item,
       return pdFALSE;
     }
 
-  nxmutex_lock(&queue->lock);
+  irqstate_t flags = spin_lock_irqsave(&queue->lock);
   memcpy(queue->storage + queue->write_index * queue->item_size,
          item, queue->item_size);
   queue->write_index = (queue->write_index + 1) % queue->length;
-  nxmutex_unlock(&queue->lock);
+  spin_unlock_irqrestore(&queue->lock, flags);
   nxsem_post(&queue->items);
   return pdTRUE;
 }
@@ -130,11 +130,11 @@ BaseType_t xQueueReceive(QueueHandle_t queue, void *item,
       return pdFALSE;
     }
 
-  nxmutex_lock(&queue->lock);
+  irqstate_t flags = spin_lock_irqsave(&queue->lock);
   memcpy(item, queue->storage + queue->read_index * queue->item_size,
          queue->item_size);
   queue->read_index = (queue->read_index + 1) % queue->length;
-  nxmutex_unlock(&queue->lock);
+  spin_unlock_irqrestore(&queue->lock, flags);
   nxsem_post(&queue->slots);
   return pdTRUE;
 }
@@ -159,7 +159,6 @@ void vQueueDelete(QueueHandle_t queue)
 
   nxsem_destroy(&queue->items);
   nxsem_destroy(&queue->slots);
-  nxmutex_destroy(&queue->lock);
   kmm_free(queue->storage);
   kmm_free(queue);
 }
@@ -167,14 +166,4 @@ void vQueueDelete(QueueHandle_t queue)
 void vQueueDeleteWithCaps(QueueHandle_t queue)
 {
   vQueueDelete(queue);
-}
-
-/* Some ESP-IDF DMA sources use these as functions rather than macros. */
-void portMUX_INITIALIZE(void *mux)
-{
-  (void)mux;
-}
-
-void portYIELD_FROM_ISR(void)
-{
 }

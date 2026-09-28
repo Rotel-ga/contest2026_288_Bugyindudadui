@@ -1,5 +1,44 @@
+diff --git a/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c b/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
+index af61a130caf..4c5fa46aa5e 100644
+--- a/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
++++ b/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
+@@ -343,6 +343,11 @@ IRAM_ATTR static bool csi_dma_trans_done_callback(dw_gdma_channel_handle_t chan,
+     csi_controller_t *ctlr = (csi_controller_t *)user_data;
+     bool has_new_trans = false;
+
++    // A pending completion after stop must not restart this DMA channel.
++    if (ctlr->csi_fsm != CSI_FSM_STARTED) {
++        return false;
++    }
++
+     dw_gdma_block_transfer_config_t csi_dma_transfer_config = {};
+     csi_dma_transfer_config = (dw_gdma_block_transfer_config_t) {
+         .src = {
+@@ -541,15 +546,16 @@ esp_err_t s_ctlr_csi_stop(esp_cam_ctlr_handle_t handle)
+     csi_controller_t *ctlr = __containerof(handle, csi_controller_t, base);
+     ESP_RETURN_ON_FALSE(ctlr->csi_fsm == CSI_FSM_STARTED, ESP_ERR_INVALID_STATE, TAG, "driver isn't started");
+
+-    //disable CSI bridge
+-    mipi_csi_brg_ll_enable(ctlr->hal.bridge_dev, false);
+-    ESP_RETURN_ON_ERROR(dw_gdma_channel_enable_ctrl(ctlr->dma_chan, false), TAG, "failed to disable dwgdma");
+-
++    // Serialize stop against the DMA completion callback which rearms DMA.
+     portENTER_CRITICAL(&ctlr->spinlock);
+-    ctlr->csi_fsm = CSI_FSM_ENABLED;
++    mipi_csi_brg_ll_enable(ctlr->hal.bridge_dev, false);
++    esp_err_t ret = dw_gdma_channel_enable_ctrl(ctlr->dma_chan, false);
++    if (ret == ESP_OK) {
++        ctlr->csi_fsm = CSI_FSM_ENABLED;
++    }
+     portEXIT_CRITICAL(&ctlr->spinlock);
+
+-    return ESP_OK;
++    return ret;
+ }
+
+ esp_err_t s_ctlr_csi_receive(esp_cam_ctlr_handle_t handle, esp_cam_ctlr_trans_t *trans, uint32_t timeout_ms)
 diff --git a/components/upper_hal_dma/src/dw_gdma.c b/components/upper_hal_dma/src/dw_gdma.c
-index d1304e160fa..4e50322dc6e 100644
+index d1304e160fa..525904e4eb2 100644
 --- a/components/upper_hal_dma/src/dw_gdma.c
 +++ b/components/upper_hal_dma/src/dw_gdma.c
 @@ -15,8 +15,8 @@
@@ -16,7 +55,7 @@ index d1304e160fa..4e50322dc6e 100644
 @@ -32,6 +32,19 @@
  #include "hal/cache_ll.h"
  #include "esp_cache.h"
- 
+
 +/* openvela esp-hal port compatibility: map FreeRTOS port macros used by this
 + * IDF driver onto the platform/os.h shim primitives.
 + */
@@ -31,18 +70,27 @@ index d1304e160fa..4e50322dc6e 100644
 +#endif
 +
  ESP_LOG_ATTR_TAG(TAG, "dw-gdma");
- 
+
  #if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
-@@ -208,7 +221,7 @@ static esp_err_t channel_destroy(dw_gdma_channel_t *chan)
+@@ -204,12 +217,14 @@ static void channel_unregister_from_group(dw_gdma_channel_t *chan)
+
+ static esp_err_t channel_destroy(dw_gdma_channel_t *chan)
+ {
++    // Remove this channel's ISR before releasing the group it dereferences.
++    if (chan->intr) {
++        ESP_RETURN_ON_ERROR(esp_os_intr_free(chan->intr), TAG, "free interrupt failed");
++        chan->intr = NULL;
++    }
+     if (chan->group) {
          channel_unregister_from_group(chan);
      }
-     if (chan->intr) {
+-    if (chan->intr) {
 -        esp_intr_free(chan->intr);
-+        esp_os_intr_free(chan->intr);
-     }
+-    }
      free(chan);
      return ESP_OK;
-@@ -635,7 +648,7 @@ static esp_err_t dw_gdma_install_channel_interrupt(dw_gdma_channel_t *chan)
+ }
+@@ -635,7 +650,7 @@ static esp_err_t dw_gdma_install_channel_interrupt(dw_gdma_channel_t *chan)
      } else {
          isr_flags |= DW_GDMA_ALLOW_INTR_PRIORITY_MASK;
      }
@@ -51,8 +99,38 @@ index d1304e160fa..4e50322dc6e 100644
                                      (uint32_t)dw_gdma_ll_get_intr_status_reg(hal->dev), DW_GDMA_LL_CHANNEL_EVENT_MASK(chan_id),
                                      dw_gdma_channel_default_isr, chan, &intr);
      ESP_RETURN_ON_ERROR(ret, TAG, "alloc interrupt failed");
+diff --git a/components/upper_hal_isp/src/isp_core.c b/components/upper_hal_isp/src/isp_core.c
+index 0fcbba95188..5e292000c57 100644
+--- a/components/upper_hal_isp/src/isp_core.c
++++ b/components/upper_hal_isp/src/isp_core.c
+@@ -7,6 +7,7 @@
+ #include <esp_types.h>
+ #include <sys/lock.h>
+ #include "sdkconfig.h"
++#include "platform/os.h"
+ #include "esp_log.h"
+ #include "esp_check.h"
+ #include "esp_heap_caps.h"
+@@ -368,7 +369,7 @@ esp_err_t esp_isp_register_isr(isp_proc_handle_t proc, isp_submodule_t submodule
+
+         uint32_t intr_st_reg_addr = isp_ll_get_intr_status_reg_addr(proc->hal.hw);
+         uint32_t intr_st_mask = ISP_LL_EVENT_AF_MASK | ISP_LL_EVENT_AE_MASK | ISP_LL_EVENT_AWB_MASK | ISP_LL_EVENT_HIST_MASK;
+-        ret = esp_intr_alloc_intrstatus(isp_hw_info.instances[proc->proc_id].irq, ISP_INTR_ALLOC_FLAGS | proc->intr_priority, intr_st_reg_addr, intr_st_mask,
++        ret = esp_os_intr_alloc_intrstatus(isp_hw_info.instances[proc->proc_id].irq, ISP_INTR_ALLOC_FLAGS | proc->intr_priority, intr_st_reg_addr, intr_st_mask,
+                                         s_isp_isr_dispatcher, (void *)proc, &proc->intr_hdl);
+         if (ret != ESP_OK) {
+             ESP_LOGE(TAG, "no intr source");
+@@ -417,7 +418,7 @@ esp_err_t esp_isp_deregister_isr(isp_proc_handle_t proc, isp_submodule_t submodu
+
+     if (do_free) {
+         esp_intr_disable(proc->intr_hdl);
+-        ret = esp_intr_free(proc->intr_hdl);
++        ret = esp_os_intr_free(proc->intr_hdl);
+         if (ret != ESP_OK) {
+             return ret;
+         }
 diff --git a/nuttx/include/platform/os.h b/nuttx/include/platform/os.h
-index 118b35570f4..0bdd9c9a307 100644
+index 118b35570f4..95af6d7d542 100644
 --- a/nuttx/include/platform/os.h
 +++ b/nuttx/include/platform/os.h
 @@ -21,6 +21,7 @@
@@ -62,8 +140,19 @@ index 118b35570f4..0bdd9c9a307 100644
 +#include <nuttx/signal.h>
  #include <nuttx/init.h>
  #include <sched/sched.h>
- 
-@@ -354,7 +355,7 @@ static inline void esp_os_task_delay_adapter(uint32_t ticks)
+
+@@ -176,7 +177,9 @@ typedef struct esp_os_task_notify_s esp_os_task_notify_t;
+ #endif
+
+ /* Spinlock initialization for static array initialization */
+-#define portMUX_INITIALIZER_UNLOCKED {}
++#ifndef portMUX_INITIALIZER_UNLOCKED
++#  define portMUX_INITIALIZER_UNLOCKED {}
++#endif
+
+ /* Tick type for timeout calculations */
+ typedef uint32_t TickType_t;
+@@ -354,7 +357,7 @@ static inline void esp_os_task_delay_adapter(uint32_t ticks)
    if (OSINIT_OS_READY())
      {
        useconds_t us = TICK2USEC(ticks);
@@ -71,23 +160,125 @@ index 118b35570f4..0bdd9c9a307 100644
 +      nxsig_usleep(us);
      }
  }
- 
+
 diff --git a/nuttx/src/platform/os.c b/nuttx/src/platform/os.c
-index 99470d7e7c0..0d57e46bd48 100644
+index 99470d7e7c0..43fff5277af 100644
 --- a/nuttx/src/platform/os.c
 +++ b/nuttx/src/platform/os.c
 @@ -13,6 +13,7 @@
- 
+
  #include <debug.h>
  #include <errno.h>
 +#include <fcntl.h>
  #include <stdint.h>
  #include <stdlib.h>
  #include <stdio.h>
-@@ -1335,9 +1336,15 @@ int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
- 
+@@ -333,32 +334,6 @@ static esp_err_t esp_os_queue_receive_generic(esp_os_queue_handle_t queue,
+   return ret >= 0 ? ESP_OK : ESP_FAIL;
+ }
+
+-/****************************************************************************
+- * Name: isr_adapter_func
+- *
+- * Description:
+- *   Interrupt service routine adapter function.
+- *
+- * Input Parameters:
+- *   irq     - IRQ number.
+- *   context - Context (unused).
+- *   arg     - User argument.
+- *
+- * Returned Value:
+- *   Zero (OK).
+- *
+- ****************************************************************************/
+-
+-static int isr_adapter_func(int irq, FAR void *context, FAR void *arg)
+-{
+-  FAR struct intr_adapter_to_nuttx *isr_adapter_args =
+-    (FAR struct intr_adapter_to_nuttx *)arg;
+-
+-  isr_adapter_args->handler(isr_adapter_args->arg);
+-
+-  return 0;
+-}
+-
+ /****************************************************************************
+  * Public Functions
+  ****************************************************************************/
+@@ -379,14 +354,7 @@ static int isr_adapter_func(int irq, FAR void *context, FAR void *arg)
+
+ esp_err_t esp_os_intr_free(intr_handle_t handle)
+ {
+-  FAR esp_os_intr_handle_t *intr_handle =
+-    (FAR esp_os_intr_handle_t *)handle;
+-  int irq = intr_handle->irq;
+-  int cpuint = esp_get_cpuint(this_cpu(), irq);
+-
+-  esp_teardown_irq(ESP_IRQ2SOURCE(irq), cpuint);
+-
+-  return ESP_OK;
++  return esp_free_native_irq(handle);
+ }
+
+ /****************************************************************************
+@@ -446,50 +414,8 @@ esp_err_t esp_os_intr_alloc_intrstatus(int source, int flags,
+                                         FAR void *arg,
+                                         FAR intr_handle_t *ret_handle)
+ {
+-  FAR struct intr_adapter_to_nuttx *isr_adapter_args;
+-  int irq = ESP_SOURCE2IRQ(source);
+-  int cpuint;
+-
+-  isr_adapter_args = kmm_calloc(1, sizeof(struct intr_adapter_to_nuttx));
+-  if (isr_adapter_args == NULL)
+-    {
+-      irqerr("Failed to kmm_calloc\n");
+-      return ESP_ERR_NO_MEM;
+-    }
+-
+-  isr_adapter_args->handler = handler;
+-  isr_adapter_args->arg     = arg;
+-
+-  cpuint = esp_setup_irq_with_flags_intrstatus(source, flags, intrstatusreg,
+-                                               intrstatusmask,
+-                                               isr_adapter_func,
+-                                               isr_adapter_args);
+-
+-  if (cpuint < 0)
+-    {
+-      irqerr("Failed to setup interrupt\n");
+-      return ESP_ERR_NOT_FOUND;
+-    }
+-
+-  *ret_handle = esp_get_handle(this_cpu(), irq);
+-
+-  if (*ret_handle == NULL)
+-    {
+-      irqerr("Failed to get handle\n");
+-      return ESP_ERR_NOT_FOUND;
+-    }
+-
+-  /* Honour ESP_INTR_FLAG_INTRDISABLED: return with the interrupt disabled
+-   * so the caller can enable it explicitly once its ISR context is fully
+-   * initialised (matches ESP-IDF's esp_intr_alloc() behaviour).
+-   */
+-
+-  if ((flags & ESP_INTR_FLAG_INTRDISABLED) == 0)
+-    {
+-      up_enable_irq(irq);
+-    }
+-
+-  return ESP_OK;
++  return esp_alloc_native_irq(source, flags, intrstatusreg, intrstatusmask,
++                             handler, arg, ret_handle);
+ }
+
+ /****************************************************************************
+@@ -1335,9 +1261,15 @@ int esp_os_create_task_pinned_to_core(esp_os_task_function_t task_func,
+
    tcb->flags = TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_FREE_TCB;
- 
+
 -  ret = nxtask_init(tcb, name, priority,
 -                    NULL, stack_size,
 -                    task_wrapper_entry, argv, NULL, NULL);

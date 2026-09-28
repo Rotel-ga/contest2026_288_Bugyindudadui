@@ -82,7 +82,10 @@ def capture_frame(console, gain, timeout, jpeg=False, awb=True):
     except board_console.BoardBusy as error:
         raise CaptureError(str(error)) from error
     if "command not found" in text:
-        raise CaptureError("固件里没有 p4x_selftest，请烧录 image-develop 固件")
+        detail = next((line.strip() for line in text.splitlines()
+                       if "command not found" in line), "command not found")
+        raise CaptureError(f"NSH 未识别收到的命令：{detail}；"
+                           "请检查命令是否丢字，不要据此直接更换固件")
     if "Usage: p4x_selftest" in text:
         raise CaptureError(f"固件不支持 `{command}`，请烧录 image-develop 固件")
     if "CSI capture failed" in text:
@@ -260,9 +263,20 @@ def main():
                         text = board_console.clean(
                             args.from_log.read_bytes())
                     else:
-                        text = capture_frame(console, args.gain,
-                                            args.capture_timeout,
-                                            jpeg=args.jpeg, awb=args.awb)
+                        raw_path = logs_dir / f"{tag}.serial.log"
+                        print(f"[{now}] #{frame_id} 实时串口日志：{raw_path}",
+                              flush=True)
+                        console.progress = lambda message: print(
+                            f"[{time.strftime('%H:%M:%S')}] {message}", flush=True)
+                        with raw_path.open("wb") as raw_log:
+                            console.trace = raw_log
+                            try:
+                                text = capture_frame(console, args.gain,
+                                                     args.capture_timeout,
+                                                     jpeg=args.jpeg, awb=args.awb)
+                            finally:
+                                console.trace = None
+                                console.progress = None
                         (logs_dir / f"{tag}.log").write_text(
                             text, encoding="utf-8")
                     if args.jpeg:

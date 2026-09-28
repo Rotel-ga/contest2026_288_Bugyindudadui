@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -16,6 +17,7 @@
 #include <unistd.h>
 
 #include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mutex.h>
 
 #include "esp_cam_ctlr.h"
 #include "esp_cam_ctlr_csi.h"
@@ -25,6 +27,10 @@
 #include "esp_private/esp_cache_private.h"
 #include "hal/cam_ctlr_types.h"
 #include "freertos/FreeRTOS.h"
+
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+#  include "esp_usbserial.h"
+#endif
 
 #include "jpeg_sw.h"
 #include "p4x_camera_capture.h"
@@ -642,16 +648,8 @@ static void sc2336_stream_off(void)
 
 struct csi_capture_s
 {
-  /* Completion flag instead of a semaphore.
-   *
-   * The CSI callbacks reach us through the vendor interrupt bridge in
-   * esp_irq.c, which dispatches the ESP-IDF handler directly and therefore
-   * never enters riscv_doirq() - so NuttX does not consider itself to be in
-   * interrupt context.  Calling a scheduler primitive (nxsem_post) from
-   * there takes the task-context path and performs an in-place context
-   * switch, which corrupts callee-saved registers and crashes on the next
-   * interrupt.  Keep the callbacks free of any OS primitive and let the
-   * waiting task poll this flag instead.
+  /* The DMA callbacks now run through riscv_doirq in NuttX interrupt
+   * context.  Keep the existing bounded task-side polling protocol.
    */
 
   volatile bool finished;
@@ -834,6 +832,70 @@ static void csi_report_stats(const uint8_t *frame)
  *
  ****************************************************************************/
 
+static int g_frame_error;
+static mutex_t g_capture_lock = NXMUTEX_INITIALIZER;
+
+static int camera_frame_begin(void)
+{
+  g_frame_error = 0;
+  fflush(stdout);
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+  g_frame_error = esp_usbserial_frame_begin();
+  if (g_frame_error == 0)
+    {
+      g_frame_error = esp_usbserial_frame_write("\n", 1);
+      if (g_frame_error < 0)
+        {
+          esp_usbserial_frame_end();
+        }
+    }
+#endif
+  return g_frame_error;
+}
+
+static void camera_frame_printf(const char *fmt, ...)
+{
+  char line[256];
+  va_list ap;
+  int len;
+
+  if (g_frame_error < 0)
+    {
+      return;
+    }
+
+  va_start(ap, fmt);
+  len = vsnprintf(line, sizeof(line), fmt, ap);
+  va_end(ap);
+  if (len < 0 || len >= (int)sizeof(line))
+    {
+      g_frame_error = -EOVERFLOW;
+      return;
+    }
+
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+  g_frame_error = esp_usbserial_frame_write(line, len);
+#else
+  if (fwrite(line, 1, len, stdout) != (size_t)len)
+    {
+      g_frame_error = -EIO;
+    }
+#endif
+}
+
+static void camera_frame_end(void)
+{
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+  esp_usbserial_frame_end();
+#else
+  fflush(stdout);
+#endif
+  if (g_frame_error < 0)
+    {
+      printf("camera_capture: transport failed ret=%d\n", g_frame_error);
+    }
+}
+
 static void csi_emit_thumbnail(const uint8_t *frame)
 {
   static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -858,7 +920,12 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   uint16_t avg;
   uint8_t pxb[SC2336_BYTES_PER_PIXEL];
 
-  printf("camera_capture: thumb begin w=%d h=%d fmt=rgb565le bytes=%d\n",
+  if (camera_frame_begin() < 0)
+    {
+      return;
+    }
+
+  camera_frame_printf("camera_capture: thumb begin w=%d h=%d fmt=rgb565le bytes=%d\n",
          SC2336_THUMB_W, SC2336_THUMB_H,
          SC2336_THUMB_W * SC2336_THUMB_H * SC2336_BYTES_PER_PIXEL);
 
@@ -912,7 +979,7 @@ static void csi_emit_thumbnail(const uint8_t *frame)
               if (nline >= SC2336_THUMB_COLS)
                 {
                   line[nline] = '\0';
-                  printf("THUMB:%s\n", line);
+                  camera_frame_printf("THUMB:%s\n", line);
                   nline = 0;
                 }
             }
@@ -944,10 +1011,11 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   if (nline > 0)
     {
       line[nline] = '\0';
-      printf("THUMB:%s\n", line);
+      camera_frame_printf("THUMB:%s\n", line);
     }
 
-  printf("camera_capture: thumb end sum32=0x%08lx\n", (unsigned long)sum);
+  camera_frame_printf("camera_capture: thumb end sum32=0x%08lx\n", (unsigned long)sum);
+  camera_frame_end();
 }
 
 /* Software-JPEG switches, set by the --jpeg-capture command. */
@@ -1025,14 +1093,20 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
       sum += jpg[k];
     }
 
+  if (camera_frame_begin() < 0)
+    {
+      free(jpg);
+      return;
+    }
+
   if (awb)
     {
-      printf("jpeg_sw: awb gain_q16 r=%lu g=%lu b=%lu\n",
+      camera_frame_printf("jpeg_sw: awb gain_q16 r=%lu g=%lu b=%lu\n",
              (unsigned long)gains[0], (unsigned long)gains[1],
              (unsigned long)gains[2]);
     }
 
-  printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx awb=%s "
+  camera_frame_printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx awb=%s "
          "enc_ms=%lu\n", n, width, height, (unsigned long)sum,
          awb ? "on" : "off", enc_ms);
 
@@ -1049,7 +1123,7 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
           if (nl >= 72)
             {
               line[nl] = '\0';
-              printf("jpg:%s\n", line);
+              camera_frame_printf("jpg:%s\n", line);
               nl = 0;
             }
         }
@@ -1068,10 +1142,11 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
   if (nl > 0)
     {
       line[nl] = '\0';
-      printf("jpg:%s\n", line);
+      camera_frame_printf("jpg:%s\n", line);
     }
 
-  printf("jpeg_sw: end\n");
+  camera_frame_printf("jpeg_sw: end\n");
+  camera_frame_end();
   free(jpg);
 }
 
@@ -1085,7 +1160,7 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
  *
  ****************************************************************************/
 
-int p4x_jpeg_selftest(void)
+static int jpeg_selftest_once(void)
 {
   const int W = SC2336_WIDTH;
   const int H = SC2336_HEIGHT;
@@ -1119,13 +1194,13 @@ int p4x_jpeg_selftest(void)
 
   p4x_jpeg_emit_frame((const uint8_t *)img, W, H, 0);
   free(img);
-  return 0;
+  return g_frame_error;
 }
 
-int p4x_camera_capture_csi(const char *output, const int *gain)
+static int camera_capture_once(const char *output, const int *gain)
 {
   esp_cam_ctlr_handle_t camera = NULL;
-  struct csi_capture_s capture;
+  static struct csi_capture_s capture;
   esp_cam_ctlr_trans_t transaction;
   esp_cam_ctlr_evt_cbs_t callbacks;
   esp_cam_ctlr_csi_config_t config;
@@ -1136,6 +1211,9 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   size_t frame_align;
   void *frame;
   bool camera_stopped = false;
+  bool camera_enabled = false;
+  bool camera_started = false;
+  bool isp_enabled = false;
   int waited_ms;
   int fd;
   int ret;
@@ -1197,6 +1275,7 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
     {
       printf("camera_capture: frame allocation failed: %u bytes\n",
              (unsigned int)SC2336_FRAME_SIZE);
+      sc2336_stream_off();
       esp_ldo_release_channel(phy_ldo);
       return -ENOMEM;
     }
@@ -1214,6 +1293,7 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
 
   if (esp_cam_new_csi_ctlr(&config, &camera) != ESP_OK)
     {
+      sc2336_stream_off();
       free(frame);
       esp_ldo_release_channel(phy_ldo);
       return -ENODEV;
@@ -1241,6 +1321,7 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   if (ret == ESP_OK)
     {
       ret = esp_cam_ctlr_enable(camera);
+      camera_enabled = ret == ESP_OK;
       printf("camera_capture: stage enable       ret=%d\n", ret);
     }
 
@@ -1281,6 +1362,7 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   if (ret == ESP_OK)
     {
       ret = esp_isp_enable(isp_proc);
+      isp_enabled = ret == ESP_OK;
       printf("camera_capture: stage isp_enable   ret=%d\n", ret);
     }
 
@@ -1342,6 +1424,7 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   if (ret == ESP_OK)
     {
       ret = esp_cam_ctlr_start(camera);
+      camera_started = ret == ESP_OK;
       printf("camera_capture: stage start        ret=%d\n", ret);
     }
 
@@ -1353,15 +1436,8 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
 
   if (ret == ESP_OK)
     {
-      /* Poll instead of blocking on a semaphore: the completion callback runs
-       * outside NuttX interrupt context (see struct csi_capture_s) and must
-       * not touch any OS primitive.
-       *
-       * on_trans_finished can only fire on the *second* DMA completion -
-       * start() primes ctlr->trans with the driver's backup buffer and the
-       * report path is gated on ctlr->trans.buffer != backup_buffer
-       * (esp_cam_ctlr_csi.c:398) - which is still only ~66 ms at 30 fps.
-       * Keep the budget short so the probe printf below always comes back.
+      /* Wait for the requested warm-up frames while the desktop keeps
+       * running.  The ISR only publishes counters and the completion flag.
        */
 
       for (waited_ms = 0; !capture.finished &&
@@ -1394,10 +1470,16 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
    * sample.
    */
 
-  if (camera != NULL)
+  if (camera_started)
     {
-      esp_cam_ctlr_stop(camera);
-      camera_stopped = true;
+      int stop_ret = esp_cam_ctlr_stop(camera);
+      camera_stopped = stop_ret == ESP_OK;
+      if (!camera_stopped)
+        {
+          printf("camera_capture: stop failed ret=%d\n", stop_ret);
+          ret = -EIO;
+        }
+
       usleep(20000);
     }
 
@@ -1417,6 +1499,11 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
       else
         {
           csi_emit_thumbnail(frame);
+        }
+
+      if (g_frame_error < 0)
+        {
+          ret = g_frame_error;
         }
     }
 
@@ -1449,12 +1536,23 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
 
   if (camera != NULL)
     {
-      if (!camera_stopped)
+      if (camera_started && !camera_stopped)
         {
-          esp_cam_ctlr_stop(camera);
+          /* Keep DMA-owned memory alive if the controller cannot stop. */
+
+          if (esp_cam_ctlr_stop(camera) != ESP_OK)
+            {
+              sc2336_stream_off();
+              printf("camera_capture: stop failed; reset required\n");
+              return -EIO;
+            }
         }
 
-      esp_cam_ctlr_disable(camera);
+      if (camera_enabled)
+        {
+          esp_cam_ctlr_disable(camera);
+        }
+
       esp_cam_ctlr_del(camera);
     }
 
@@ -1462,10 +1560,40 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
 
   if (isp_proc != NULL)
     {
-      esp_isp_disable(isp_proc);
+      if (isp_enabled)
+        {
+          esp_isp_disable(isp_proc);
+        }
       esp_isp_del_processor(isp_proc);
     }
   free(frame);
   esp_ldo_release_channel(phy_ldo);
+  return ret;
+}
+
+int p4x_camera_capture_csi(const char *output, const int *gain)
+{
+  int ret = nxmutex_trylock(&g_capture_lock);
+
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ret = camera_capture_once(output, gain);
+  nxmutex_unlock(&g_capture_lock);
+  return ret;
+}
+
+int p4x_jpeg_selftest(void)
+{
+  int ret = nxmutex_trylock(&g_capture_lock);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ret = jpeg_selftest_once();
+  nxmutex_unlock(&g_capture_lock);
   return ret;
 }
