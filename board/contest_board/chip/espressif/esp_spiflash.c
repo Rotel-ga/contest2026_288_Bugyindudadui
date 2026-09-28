@@ -30,6 +30,7 @@
 #include <nuttx/nuttx.h>
 
 #include <stdint.h>
+#include <errno.h>
 #include <assert.h>
 
 #include <debug.h>
@@ -613,4 +614,12 @@ int esp_spiflash_erase(uint32_t address, uint32_t length)
     }
 
   return ret;
+}
+
+/* Initialize the default chip before exposing user storage to the board. */
+int esp_spiflash_initialize(void)
+{
+  esp_err_t ret = esp_flash_app_init();
+  if (ret == ESP_OK) ret = esp_flash_init_default_chip();
+  return ret == ESP_OK ? 0 : -EIO;
 }

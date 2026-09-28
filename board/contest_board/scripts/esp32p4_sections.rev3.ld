@@ -560,6 +560,11 @@ SECTIONS
     _text_start = ABSOLUTE(.);
 
     *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)
+    . = ALIGN(4);
+    __start___lcxx_override = ABSOLUTE(.);
+    *(__lcxx_override)
+    . = ALIGN(4);
+    __stop___lcxx_override = ABSOLUTE(.);
     *(.irom0.text) /* catch stray ICACHE_RODATA_ATTR */
     *(.fini.literal)
     *(.fini)
@@ -653,6 +658,7 @@ SECTIONS
      */
 
  . = ALIGN(4);
+ _sinit = ABSOLUTE(.);
  __init_priority_array_start = ABSOLUTE(.);
     KEEP (*(EXCLUDE_FILE (*crtend.* *crtbegin.*) .init_array.*))
     __init_priority_array_end = ABSOLUTE(.);
@@ -661,6 +667,7 @@ SECTIONS
  __init_array_start = ABSOLUTE(.);
     KEEP (*(EXCLUDE_FILE (*crtend.* *crtbegin.*) .init_array))
     __init_array_end = ABSOLUTE(.);
+    _einit = ABSOLUTE(.);
     /* Addresses of memory regions reserved via SOC_RESERVE_MEMORY_REGION() */
 
  . = ALIGN(4);

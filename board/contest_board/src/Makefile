@@ -41,4 +41,12 @@ ifeq ($(CONFIG_BOARDCTL),y)
   endif
 endif
 
+ifeq ($(CONFIG_ESP32P4_BOARD_TOUCH),y)
+  CSRCS += esp32p4_touch.c
+endif
+
+ifeq ($(CONFIG_ESP32P4_DESKTOP),y)
+  CSRCS += esp32p4_desktop_storage.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

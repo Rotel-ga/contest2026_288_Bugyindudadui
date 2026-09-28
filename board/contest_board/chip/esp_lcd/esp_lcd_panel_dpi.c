@@ -11,6 +11,7 @@
 #include "esp_async_color_convert.h"
 #endif
 #include "esp_intr_alloc.h"
+#include "platform/os.h"
 #include "esp_clk_tree.h"
 #include "esp_cache.h"
 #include "mipi_dsi_priv.h"
@@ -291,7 +292,7 @@ esp_err_t esp_lcd_new_panel_dpi(esp_lcd_dsi_bus_handle_t bus, const esp_lcd_dpi_
 #if CONFIG_LCD_DSI_ISR_CACHE_SAFE
     isr_flags |= ESP_INTR_FLAG_IRAM;
 #endif
-    ESP_GOTO_ON_ERROR(esp_intr_alloc(soc_mipi_dsi_signals[bus_id].brg_irq_id, isr_flags, mipi_dsi_bridge_isr_handler,
+    ESP_GOTO_ON_ERROR(esp_os_intr_alloc(soc_mipi_dsi_signals[bus_id].brg_irq_id, isr_flags, mipi_dsi_bridge_isr_handler,
                                      dpi_panel, &dpi_panel->brg_intr), err, TAG, "allocate DSI Bridge interrupt failed");
 
     // create DMA resources
@@ -423,7 +424,7 @@ static esp_err_t dpi_panel_del(esp_lcd_panel_t *panel)
         }
     }
     if (dpi_panel->brg_intr) {
-        esp_intr_free(dpi_panel->brg_intr);
+        esp_os_intr_free(dpi_panel->brg_intr);
     }
 #if CONFIG_PM_ENABLE
     if (dpi_panel->pm_lock) {
