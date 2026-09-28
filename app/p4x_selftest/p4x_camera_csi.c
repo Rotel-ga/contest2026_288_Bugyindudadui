@@ -33,6 +33,9 @@
 #endif
 
 #include "jpeg_sw.h"
+#ifdef CONFIG_ESP32P4_DESKTOP
+#  include "../fallguard/camera_preview.h"
+#endif
 #include "p4x_camera_capture.h"
 
 #define SC2336_ADDR        0x30
@@ -1076,6 +1079,15 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
                          P4X_JPEG_AWB_TARGET, gains);
     }
 
+#ifdef CONFIG_ESP32P4_DESKTOP
+  int preview_ret = camera_preview_publish((const uint16_t *)frame,
+                                          width, height, awb ? gains : NULL);
+  if (preview_ret < 0)
+    {
+      printf("camera_capture: preview unavailable ret=%d\n", preview_ret);
+    }
+#endif
+
   n = jpeg_sw_encode_rgb565((const uint16_t *)frame, width, height, 80,
                             awb ? gains : NULL, jpg, cap);
   clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -1498,6 +1510,14 @@ static int camera_capture_once(const char *output, const int *gain)
         }
       else
         {
+#ifdef CONFIG_ESP32P4_DESKTOP
+          int preview_ret = camera_preview_publish((const uint16_t *)frame,
+                                      SC2336_WIDTH, SC2336_HEIGHT, NULL);
+          if (preview_ret < 0)
+            {
+              printf("camera_capture: preview unavailable ret=%d\n", preview_ret);
+            }
+#endif
           csi_emit_thumbnail(frame);
         }
 

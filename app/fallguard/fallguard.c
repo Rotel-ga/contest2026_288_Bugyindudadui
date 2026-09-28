@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "fallguard.h"
 #include "panel_control.h"
+#include "camera_preview.h"
+#include <stdlib.h>
 #include "../desktop/desktop.h"
 #include <stdio.h>
 
@@ -19,6 +21,59 @@ static lv_obj_t *g_screen;
 static lv_obj_t *g_pc_label;
 static const char *g_last_pc_text;
 static void status_render(void);
+static uint16_t *g_preview_pixels;
+static uint32_t g_preview_sequence;
+static lv_obj_t *g_preview_image;
+static lv_obj_t *g_preview_hint;
+static lv_image_dsc_t g_preview =
+{
+  .header.magic = LV_IMAGE_HEADER_MAGIC,
+  .header.cf = LV_COLOR_FORMAT_RGB565,
+  .header.w = CAMERA_PREVIEW_W,
+  .header.h = CAMERA_PREVIEW_H,
+  .header.stride = CAMERA_PREVIEW_W * 2,
+  .data_size = CAMERA_PREVIEW_BYTES
+};
+
+void fallguard_preview_init(void)
+{
+  g_preview_pixels = malloc(CAMERA_PREVIEW_BYTES);
+  if (g_preview_pixels && camera_preview_open() < 0)
+    {
+      free(g_preview_pixels);
+      g_preview_pixels = NULL;
+    }
+  g_preview.data = (const uint8_t *)g_preview_pixels;
+  g_preview_sequence = 0;
+}
+
+/* Called after LVGL teardown, when no widget/cache references the pixels. */
+void fallguard_preview_deinit(void)
+{
+  camera_preview_close();
+  free(g_preview_pixels);
+  g_preview_pixels = NULL;
+  g_preview.data = NULL;
+  g_screen = NULL;
+}
+
+static void preview_render(void)
+{
+  uint32_t sequence;
+  if (!g_preview_pixels) return;
+  sequence = camera_preview_take(g_preview_pixels, g_preview_sequence);
+  if (sequence != g_preview_sequence)
+    {
+      char text[64];
+      g_preview_sequence = sequence;
+      lv_image_cache_drop(&g_preview);
+      lv_image_set_src(g_preview_image, &g_preview);
+      lv_obj_remove_flag(g_preview_image, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_invalidate(g_preview_image);
+      snprintf(text, sizeof(text), "Photo #%lu", (unsigned long)sequence);
+      lv_label_set_text(g_preview_hint, text);
+    }
+}
 
 void fallguard_poll(void)
 {
@@ -30,6 +85,7 @@ void fallguard_poll(void)
       return;
     }
 
+  preview_render();
   panel_control_snapshot(&state);
   if (!state.connected)
     {
@@ -157,6 +213,16 @@ void fallguard_event(lv_event_t *event)
   fallguard_show();
 }
 
+static void preview_screen_deleted(lv_event_t *event)
+{
+  if (lv_event_get_target(event) == g_screen)
+    {
+      g_screen = NULL;
+      g_preview_image = NULL;
+      g_preview_hint = NULL;
+    }
+}
+
 void fallguard_show(void)
 {
   lv_obj_t *screen = desk_screen(DESK_BG);
@@ -168,6 +234,7 @@ void fallguard_show(void)
   panel_control_snapshot(&state);
   g_status = state.requested ? FALLGUARD_DETECTING : FALLGUARD_NORMAL;
   g_screen = screen;
+  lv_obj_add_event_cb(screen, preview_screen_deleted, LV_EVENT_DELETE, NULL);
   g_last_pc_text = NULL;
   g_status_label = NULL;
   g_status_dot = NULL;
@@ -183,8 +250,26 @@ void fallguard_show(void)
   lv_obj_set_style_border_width(video, 1, 0);
   lv_obj_set_style_border_color(video, lv_color_hex(0x35476a), 0);
   lv_obj_remove_flag(video, LV_OBJ_FLAG_SCROLLABLE);
-  desk_label(video, "视频画面预留", 0, 112, 590, DESK_MUTED);
-  lv_obj_set_style_text_align(lv_obj_get_child(video, 0), LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_pad_all(video, 0, 0);
+  g_preview_image = lv_image_create(video);
+  lv_obj_center(g_preview_image);
+  if (g_preview_sequence)
+    {
+      lv_image_set_src(g_preview_image, &g_preview);
+    }
+  else
+    {
+      lv_obj_add_flag(g_preview_image, LV_OBJ_FLAG_HIDDEN);
+    }
+  g_preview_hint = desk_label(video,
+    g_preview_pixels ? "Waiting for photo" : "Preview unavailable",
+    8, 4, 280, DESK_MUTED);
+  if (g_preview_sequence)
+    {
+      char text[64];
+      snprintf(text, sizeof(text), "Photo #%lu", (unsigned long)g_preview_sequence);
+      lv_label_set_text(g_preview_hint, text);
+    }
 
   card = lv_obj_create(screen);
   lv_obj_set_pos(card, 675, 115);
