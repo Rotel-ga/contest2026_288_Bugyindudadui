@@ -28,6 +28,10 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <errno.h>
+#include <nuttx/mutex.h>
+#include <nuttx/semaphore.h>
+#include <nuttx/clock.h>
 #include <string.h>
 #include <assert.h>
 #include <debug.h>
@@ -105,6 +109,16 @@ static int  esp_ioctl(struct file *filep, int cmd, unsigned long arg);
 static bool g_tx_stalled;
 #endif
 
+/* A camera frame owns the wire until end or timeout.  Ordinary console
+ * logging remains best effort and is suppressed during this short session.
+ * The task-side writer yields while the host drains the FIFO; it never
+ * waits for USB with interrupts disabled.
+ */
+
+static mutex_t g_frame_lock = NXMUTEX_INITIALIZER;
+static volatile bool g_frame_tx;
+static sem_t g_frame_ready = SEM_INITIALIZER(0);
+
 static char g_rxbuffer[ESP_USBCDC_BUFFERSIZE];
 static char g_txbuffer[ESP_USBCDC_BUFFERSIZE];
 
@@ -179,7 +193,16 @@ static int esp_interrupt(int irq, void *context, void *arg)
     {
       usb_serial_jtag_ll_clr_intsts_mask(
         USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
-      uart_xmitchars(dev);
+      if (g_frame_tx)
+        {
+          usb_serial_jtag_ll_disable_intr_mask(
+            USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
+          nxsem_post(&g_frame_ready);
+        }
+      else
+        {
+          uart_xmitchars(dev);
+        }
     }
 
   /* Data from the host are available to read. */
@@ -229,6 +252,18 @@ static void esp_shutdown(struct uart_dev_s *dev)
 
 static void esp_txint(struct uart_dev_s *dev, bool enable)
 {
+  if (g_frame_tx)
+    {
+      /* Discard ordinary logs without altering the frame writer's IRQ. */
+
+      if (enable)
+        {
+          uart_xmitchars(dev);
+        }
+
+      return;
+    }
+
   usb_serial_jtag_ll_txfifo_flush();
 
   if (enable)
@@ -393,6 +428,11 @@ static bool esp_txready(struct uart_dev_s *dev)
 
 static void esp_send(struct uart_dev_s *dev, int ch)
 {
+  if (g_frame_tx)
+    {
+      return;
+    }
+
   /* Write the character to the buffer. */
 
   uint8_t buf[1] = {
@@ -514,4 +554,95 @@ void esp_usbserial_write(char ch)
   while (!esp_txready(&g_uart_usbserial));
 
   esp_send(&g_uart_usbserial, ch);
+}
+
+int esp_usbserial_frame_begin(void)
+{
+  int ret = nxmutex_trylock(&g_frame_lock);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  irqstate_t flags = enter_critical_section();
+  g_frame_tx = true;
+  usb_serial_jtag_ll_txfifo_flush();
+  leave_critical_section(flags);
+  return 0;
+}
+
+int esp_usbserial_frame_write(const char *data, size_t len)
+{
+  clock_t progress = clock_systime_ticks();
+  size_t offset = 0;
+
+  while (offset < len)
+    {
+      size_t sent = 0;
+      irqstate_t flags = enter_critical_section();
+      if (usb_serial_jtag_ll_txfifo_writable())
+        {
+          size_t count = len - offset;
+          if (count > 64)
+            {
+              count = 64;
+            }
+
+          sent = usb_serial_jtag_ll_write_txfifo(
+                   (const uint8_t *)data + offset, count);
+          usb_serial_jtag_ll_txfifo_flush();
+        }
+
+      leave_critical_section(flags);
+      if (sent > 0)
+        {
+          offset += sent;
+          progress = clock_systime_ticks();
+        }
+      else if (clock_systime_ticks() - progress >= MSEC2TICK(2000))
+        {
+          return -ETIMEDOUT;
+        }
+      else
+        {
+          /* Arm while interrupts are excluded, then recheck readiness.
+           * An ISR between leaving the critical section and waiting posts
+           * the semaphore, so completion cannot be lost.
+           */
+
+          flags = enter_critical_section();
+          while (nxsem_trywait(&g_frame_ready) == 0)
+            {
+            }
+
+          usb_serial_jtag_ll_clr_intsts_mask(
+            USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
+          usb_serial_jtag_ll_ena_intr_mask(
+            USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
+          bool ready = usb_serial_jtag_ll_txfifo_writable();
+          leave_critical_section(flags);
+          if (!ready)
+            {
+              int ret = nxsem_tickwait_uninterruptible(
+                &g_frame_ready, MSEC2TICK(2000));
+              if (ret < 0)
+                {
+                  return ret;
+                }
+            }
+        }
+    }
+
+  return 0;
+}
+
+void esp_usbserial_frame_end(void)
+{
+  irqstate_t flags = enter_critical_section();
+  usb_serial_jtag_ll_disable_intr_mask(
+    USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
+  usb_serial_jtag_ll_txfifo_flush();
+  g_frame_tx = false;
+  leave_critical_section(flags);
+  nxmutex_unlock(&g_frame_lock);
 }

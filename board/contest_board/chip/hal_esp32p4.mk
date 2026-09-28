@@ -166,7 +166,9 @@ INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_ana_cmpr$(DELIM)$(CHIP_SERIES)$(DELIM)include
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)include
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src
+ifeq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST),y)
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)freertos_compat$(DELIM)include
+endif
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_cam$(DELIM)include
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_cam$(DELIM)interface
 INCLUDES += $(INCDIR_PREFIX)$(ARCH_SRCDIR)$(DELIM)chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_cam$(DELIM)csi$(DELIM)include
@@ -420,13 +422,15 @@ CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)ulp$
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)ulp$(DELIM)lp_core$(DELIM)shared$(DELIM)ulp_lp_core_memory_shared.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)ulp$(DELIM)lp_core$(DELIM)shared$(DELIM)ulp_lp_core_lp_timer_shared.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_ana_cmpr$(DELIM)ana_cmpr.c
-CHIP_CSRCS += chip$(DELIM)freertos_compat$(DELIM)freertos_compat.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_dma$(DELIM)dw_gdma_hal.c
+CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)dw_gdma.c
+CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)hal$(DELIM)color_hal.c
+
+ifeq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST),y)
+CHIP_CSRCS += chip$(DELIM)freertos_compat$(DELIM)freertos_compat.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_cam$(DELIM)cam_hal.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_cam$(DELIM)mipi_csi_hal.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_cam$(DELIM)$(CHIP_SERIES)$(DELIM)mipi_csi_periph.c
-CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)hal$(DELIM)color_hal.c
-CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)dw_gdma.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hw_support$(DELIM)mipi_csi_share_hw_ctrl.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_cam$(DELIM)esp_cam_ctlr.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_cam$(DELIM)csi$(DELIM)src$(DELIM)esp_cam_ctlr_csi.c
@@ -447,12 +451,9 @@ CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)uppe
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_isp$(DELIM)src$(DELIM)isp_wbg.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_cam$(DELIM)isp_hal.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_cam$(DELIM)$(CHIP_SERIES)$(DELIM)isp_periph.c
+endif
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)esp_dma_utils.c
 
-ifeq ($(CONFIG_ESP32P4_BOARD_LCD),y)
-CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)esp_hal_dma$(DELIM)dw_gdma_hal.c
-CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)dw_gdma.c
-endif
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)gdma_link.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_dma$(DELIM)src$(DELIM)gdma.c
 CHIP_CSRCS += chip$(DELIM)$(ESP_HAL_3RDPARTY_REPO)$(DELIM)components$(DELIM)upper_hal_gpio$(DELIM)src$(DELIM)gpio.c
@@ -527,5 +528,4 @@ CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_dpi.c
 CHIP_CSRCS += chip/esp_lcd/esp_lcd_ek79007.c
 CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_ops.c
 CHIP_CSRCS += chip/esp_lcd/esp_lcd_panel_io.c
-CHIP_CSRCS += chip/$(ESP_HAL_3RDPARTY_REPO)/components/hal/color_hal.c
 endif

@@ -102,6 +102,23 @@ static void esp_clear_handle(int cpu, int irq);
 
 static volatile intr_handle_t g_handle_map[CONFIG_SMP_NCPUS][NR_IRQS];
 
+/* Native HAL allocations retain their individual handles, including multiple
+ * channels using the same peripheral source.  Only the dispatch lookup is
+ * shared with NuttX; enable/disable/free always use the caller's own handle.
+ * The list is changed in task context with interrupts excluded.
+ */
+
+struct esp_native_intr_s
+{
+  struct esp_native_intr_s *next;
+  intr_handle_t handle;
+  int irq;
+  int cpu;
+};
+
+static struct esp_native_intr_s *g_native_intrs;
+static int g_dispatch_cpuint[ESP_NCPUS];
+
 #ifdef CONFIG_ESPRESSIF_IRAM_ISR_DEBUG
 /* The g_iram_count keeps track of how many times such an IRQ ran when the
  * non-IRAM interrupts were disabled.
@@ -200,12 +217,12 @@ IRAM_ATTR static void isr_adapter_func(void *arg)
 IRAM_ATTR static int esp_isr_demultiplexing(int irq, void *context,
                                             void *arg)
 {
-  int cpuint = esp_get_cpuint(this_cpu(), irq);
+  int cpuint = g_dispatch_cpuint[this_cpu()];
   intr_handler_t handler;
   struct intr_adapter_from_nuttx *handler_arg;
 
-  /* Validate cpuint - if invalid, the interrupt was not properly
-   * registered via esp_setup_irq. This is a bug that needs to be fixed.
+  /* Use the vector that actually fired.  Several HAL handles can share
+   * a source, and the representative IRQ handle can change on release.
    */
 
   if (cpuint < 0 || cpuint >= SOC_CPU_INTR_NUM)
@@ -501,6 +518,110 @@ int esp_setup_irq_with_flags_intrstatus(int source,
 }
 
 /****************************************************************************
+ * Native HAL interrupt ownership
+ ****************************************************************************/
+
+int esp_alloc_native_irq(int source, int flags, uint32_t statusreg,
+                         uint32_t statusmask, intr_handler_t handler,
+                         void *arg, intr_handle_t *handle)
+{
+  struct esp_native_intr_s *entry;
+  irqstate_t state;
+  int ret;
+
+  if (source < 0 || ESP_SOURCE2IRQ(source) >= NR_IRQS || handle == NULL ||
+      handler == NULL)
+    {
+      return ESP_ERR_INVALID_ARG;
+    }
+
+  *handle = NULL;
+  entry = kmm_zalloc(sizeof(*entry));
+  if (entry == NULL)
+    {
+      return ESP_ERR_NO_MEM;
+    }
+
+  /* Publish the dispatch mapping before the peripheral can interrupt. */
+
+  state = enter_critical_section();
+  ret = esp_intr_alloc_intrstatus(source, flags | ESP_INTR_FLAG_INTRDISABLED,
+                                 statusreg, statusmask, handler, arg,
+                                 &entry->handle);
+  if (ret != ESP_OK)
+    {
+      leave_critical_section(state);
+      kmm_free(entry);
+      return ret;
+    }
+
+  entry->irq = ESP_SOURCE2IRQ(source);
+  entry->cpu = esp_intr_get_cpu(entry->handle);
+  entry->next = g_native_intrs;
+  g_native_intrs = entry;
+  if ((flags & ESP_INTR_FLAG_INTRDISABLED) == 0)
+    {
+      ret = esp_intr_enable(entry->handle);
+    }
+
+  if (ret != ESP_OK)
+    {
+      g_native_intrs = entry->next;
+      esp_intr_free(entry->handle);
+      leave_critical_section(state);
+      kmm_free(entry);
+      return ret;
+    }
+
+  *handle = entry->handle;
+  leave_critical_section(state);
+  return ESP_OK;
+}
+
+int esp_free_native_irq(intr_handle_t handle)
+{
+  struct esp_native_intr_s **link;
+  struct esp_native_intr_s *entry;
+  irqstate_t state;
+  int ret;
+
+  state = enter_critical_section();
+  for (link = &g_native_intrs; *link != NULL; link = &(*link)->next)
+    {
+      entry = *link;
+      if (entry->handle == handle)
+        {
+          /* The current board runs one core.  Do not attempt an allocator
+           * cross-core IPC while holding the dispatch-list critical section.
+           */
+
+          if (entry->cpu != this_cpu())
+            {
+              leave_critical_section(state);
+              return ESP_ERR_INVALID_STATE;
+            }
+
+          ret = esp_intr_free(handle);
+          if (ret == ESP_OK)
+            {
+              *link = entry->next;
+            }
+
+          leave_critical_section(state);
+          if (ret == ESP_OK)
+            {
+              kmm_free(entry);
+            }
+
+          return ret;
+        }
+    }
+
+  leave_critical_section(state);
+  return ESP_ERR_INVALID_ARG;
+}
+
+/****************************************************************************
  * Name: esp_teardown_irq
  *
  * Description:
@@ -564,6 +685,7 @@ IRAM_ATTR void *riscv_dispatch_irq(uintreg_t mcause, uintreg_t *regs)
   bool is_irq = (RISCV_IRQ_BIT & mcause) != 0;
   bool is_edge = false;
   int cpu = this_cpu();
+  int previous_cpuint = g_dispatch_cpuint[cpu];
 
   if (is_irq)
     {
@@ -572,49 +694,17 @@ IRAM_ATTR void *riscv_dispatch_irq(uintreg_t mcause, uintreg_t *regs)
 
       DEBUGASSERT(cpuint >= 0 && cpuint < ESP_NCPUINTS);
 
+      g_dispatch_cpuint[cpu] = cpuint;
       irq = esp_cpuint_to_irq(cpuint, cpu);
 
       if (irq < 0)
         {
-          intr_handler_t idf_handler;
-
-          /* No NuttX IRQ is mapped to this CPU interrupt.
-           *
-           * Vendor HAL drivers may allocate interrupts by calling
-           * esp_intr_alloc*() directly instead of going through
-           * esp_setup_irq_*().  The MIPI-CSI controller does this via
-           * dw_gdma, which even asks for a shared vector
-           * (ESP_INTR_FLAG_SHARED) with an interrupt-status filter.  Such
-           * drivers never populate g_handle_map, so the lookup above fails.
-           * Their handler is installed in the ESP-IDF table by
-           * esp_cpu_intr_set_handler() - and nothing else in this port reads
-           * that table, so the interrupt would be neither serviced nor
-           * acknowledged and the CPU would re-enter here forever.
-           *
-           * Dispatch to the ESP-IDF handler.  For a shared vector this is
-           * shared_intr_isr(), which walks the handler chain and applies the
-           * per-handler status filter the driver requested.  Clearing the
-           * peripheral status inside that handler is what de-asserts the
-           * interrupt line.
+          /* No handle found for this CPU interrupt. This can happen
+           * if the interrupt was triggered but not properly registered.
            */
 
-          idf_handler = intr_handler_get(cpuint);
-
-          if (idf_handler != NULL)
-            {
-              idf_handler(intr_handler_get_arg(cpuint));
-              return regs;
-            }
-
-          /* Nothing can service this interrupt.  Mask it so that a
-           * level-triggered source cannot livelock the CPU: losing one
-           * interrupt is strictly better than hanging the whole system with
-           * no diagnostics (irqwarn is compiled out unless debug is on).
-           */
-
-          irqwarn("No handler for cpuint=%d cpu=%d, masking\n", cpuint, cpu);
-          esp_cpu_intr_edge_ack(cpuint);
-          esprv_int_disable(1 << cpuint);
+          irqwarn("No IRQ found for cpuint=%d cpu=%d\n", cpuint, cpu);
+          g_dispatch_cpuint[cpu] = previous_cpuint;
           return regs;
         }
 
@@ -629,7 +719,7 @@ IRAM_ATTR void *riscv_dispatch_irq(uintreg_t mcause, uintreg_t *regs)
         }
 #endif
 
-      is_edge = esprv_int_get_type(cpuint) == INTR_TYPE_LEVEL;
+      is_edge = esprv_int_get_type(cpuint) == INTR_TYPE_EDGE;
       if (is_edge)
         {
           /* Clear edge interrupts. */
@@ -646,6 +736,7 @@ IRAM_ATTR void *riscv_dispatch_irq(uintreg_t mcause, uintreg_t *regs)
     }
 
   regs = riscv_doirq(irq, regs);
+  g_dispatch_cpuint[cpu] = previous_cpuint;
 
   return regs;
 }
@@ -723,7 +814,22 @@ int esp_set_handle(int cpu, int irq, intr_handle_t handle)
 
 intr_handle_t esp_get_handle(int cpu, int irq)
 {
-  return g_handle_map[cpu][irq];
+  struct esp_native_intr_s *entry;
+
+  if (g_handle_map[cpu][irq] != IRQ_UNMAPPED)
+    {
+      return g_handle_map[cpu][irq];
+    }
+
+  for (entry = g_native_intrs; entry != NULL; entry = entry->next)
+    {
+      if (entry->cpu == cpu && entry->irq == irq)
+        {
+          return entry->handle;
+        }
+    }
+
+  return IRQ_UNMAPPED;
 }
 
 /****************************************************************************
@@ -835,6 +941,15 @@ IRAM_ATTR int esp_cpuint_to_irq(int cpuint, int cpu)
             {
               return irq;
             }
+        }
+    }
+
+  for (struct esp_native_intr_s *entry = g_native_intrs;
+       entry != NULL; entry = entry->next)
+    {
+      if (entry->cpu == cpu && esp_intr_get_intno(entry->handle) == cpuint)
+        {
+          return entry->irq;
         }
     }
 

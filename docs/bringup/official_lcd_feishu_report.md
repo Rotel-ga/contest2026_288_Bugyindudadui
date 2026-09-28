@@ -2293,3 +2293,362 @@ PATH="$HOME/.local/bin:$PATH" \
 本次按上述根目录入口实测成功：镜像大小 `718480` 字节，SHA-256 为 `e85f3865b280e42ae09b9ecb40b5d698ffbc48b186e05581a96e957f07be31ac`。构建日志确认编译了 `desktop_boot`、`esp32p4_touch`、`esp32p4_desktop_storage` 和 LVGL 桌面应用。
 
 `board/contest_board/tools/build_desktop.sh` 是便捷封装，但交付和复现以本节的团队标准 `./build.sh` 命令为准。`chip/esp-hal-3rdparty` 是被 `.gitignore` 忽略的第三方依赖，不提交到比赛仓库；其他开发者执行 `prepare_esp_hal.sh` 和 mbedTLS 子模块初始化即可得到相同固定版本。
+
+## 42. 桌面与摄像头合并最新状态（2026-09-28）
+
+### 当前 Git 状态
+
+当前工作区位于：
+
+```text
+/home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+```
+
+当前分支：
+
+```text
+merge/esp32p4-desktop-camera
+```
+
+当前 HEAD 是本地合并提交：
+
+```text
+2b9070b merge: integrate image-develop into desktop branch
+```
+
+该提交的两个父分支分别是：
+
+```text
+stable/esp32p4-desktop
+  b8b97cd feat: add native LVGL fallguard app
+
+rotel/image-develop
+  a178ae8 feat(monitor): consume the board's JPEG with fall_watch --jpeg
+```
+
+该合并提交尚未推送。当前还有未提交的组合配置和底层实验修改：
+
+```text
+board/contest_board/configs/desktop_camera/
+board/contest_board/chip/espressif/esp_irq.c
+board/contest_board/chip/hal_esp32p4.mk
+```
+
+构建过程中生成的 `.built` 文件不应提交：
+
+```text
+app/desktop/.built
+app/p4x_selftest/.built
+```
+
+### 合并内容边界
+
+本次合并的目标是把桌面和摄像头代码放进同一个分支，暂时不做桌面与摄像头页面联动。当前合入内容包括：
+
+- 稳定桌面、锁屏、设置、应用中心和原生 LVGL 跌倒监护页面；
+- `app/p4x_selftest/` 摄像头自检、SC2336 CSI、ISP 和软件 JPEG 代码；
+- 摄像头验证工具和监控脚本；
+- 摄像头 `demo` 配置；
+- 摄像头分支对 ESP32-P4 HAL、FreeRTOS 兼容层和 IRQ 的修改。
+
+当前没有把摄像头画面接到 `app/fallguard/` 页面，也没有实现实时预览、页面内单帧采集或摄像头退出恢复桌面。
+
+### 两份独立固件已经分别编译成功
+
+同一块板子当前应轮流烧录两份独立固件，不能把两个完整 `nuttx.bin` 写到同一个 `0x2000` 地址后期待同时运行。
+
+稳定桌面配置：
+
+```text
+vendor/openvela/boards/contest2026_288_board/configs/desktop
+```
+
+归档固件：
+
+```text
+artifacts/merge-desktop-camera/desktop/nuttx.bin
+```
+
+SHA-256：
+
+```text
+0700891e6bd2f820c7eee07885aae29543d8feef36440584d1f6320d934bd6e0
+```
+
+摄像头配置：
+
+```text
+vendor/openvela/boards/contest2026_288_board/configs/demo
+```
+
+归档固件：
+
+```text
+artifacts/merge-desktop-camera/camera-demo/nuttx.bin
+```
+
+SHA-256：
+
+```text
+057de0e123263c4840f17ede6fbc50744b3b32634a0777c084fe52f2890531cb
+```
+
+桌面验证时烧录 `desktop/nuttx.bin`；摄像头验证时烧录 `camera-demo/nuttx.bin`。两个人共用一块板时，按验证目标轮流烧录即可。
+
+### 单固件组合尝试结果
+
+为了探索一份固件同时包含桌面和摄像头代码，新增了未提交配置：
+
+```text
+board/contest_board/configs/desktop_camera/defconfig
+```
+
+该配置同时包含：
+
+```text
+CONFIG_ESP32P4_DESKTOP=y
+CONFIG_INIT_ENTRYPOINT="desktop_boot_main"
+CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST=y
+CONFIG_ESPRESSIF_SPIRAM=y
+CONFIG_I2C_TRACE=y
+```
+
+最终组合 ELF 中确认存在：
+
+```text
+desktop_boot_main
+p4x_selftest_main
+p4x_camera_capture_csi
+esp_cam_new_csi_ctlr
+fallguard_show
+```
+
+组合固件可以链接并生成，但烧录后出现：
+
+```text
+大部分屏幕黑色
+底部蓝色横向撕裂条纹
+背光正常
+桌面不能正常显示
+```
+
+已经测试过的组合镜像包括：
+
+```text
+artifacts/merge-desktop-camera/desktop-camera/nuttx.bin
+SHA-256: ad24b28a12c454dc8703004deded3488a5ece8a0720c99b0b72bd8ff14bf6746
+
+artifacts/merge-desktop-camera/desktop-camera-fixed/nuttx.bin
+SHA-256: 4b62410cf922b841704f69ef173a5ff12bf1b95cc3e1feee601a18d6d3096351
+```
+
+两份都出现相同撕裂，说明问题发生在摄像头底层静态链接和共享资源层，即使尚未执行摄像头命令，也会影响 LCD 启动。
+
+### 已确认的底层冲突
+
+#### 1. DW-GDMA 共享源和资源
+
+LCD 的 MIPI DSI 刷新和摄像头 CSI/ISP 都使用 DW-GDMA。合并初期的 `hal_esp32p4.mk` 重复加入了：
+
+```text
+dw_gdma_hal.c
+dw_gdma.c
+color_hal.c
+```
+
+构建日志出现过重复目标警告。后续已尝试让共享源只编译一次，并让摄像头专用源受 `CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST` 条件控制，但组合固件仍然撕裂，因此重复源不是唯一根因。
+
+#### 2. 全局 IRQ 分发变化
+
+`image-develop` 修改了 `board/contest_board/chip/espressif/esp_irq.c`，让没有 NuttX IRQ 映射的 CPU interrupt 转发到 ESP-IDF handler table。该逻辑可能影响 LCD DSI/DMA 的共享中断。当前合并分支有未提交的恢复稳定桌面 IRQ 行为的实验修改，尚未证明摄像头中断仍可用。
+
+#### 3. HAL 和 FreeRTOS 兼容层
+
+摄像头分支修改了被共享的 `esp-hal-3rdparty` 内容：
+
+```text
+components/upper_hal_dma/src/dw_gdma.c
+nuttx/include/platform/os.h
+nuttx/src/platform/os.c
+```
+
+这些修改会影响 DMA 中断申请、任务创建和平台延时，不是纯摄像头页面代码。摄像头 HAL、CSI/ISP HAL 和 FreeRTOS 兼容层静态链接进桌面镜像后，可能在摄像头未启动时就改变 LCD 的运行环境。
+
+#### 4. PSRAM 和缓存带宽
+
+LCD framebuffer 约为：
+
+```text
+1024 × 600 × 2 ≈ 1.17 MiB
+```
+
+摄像头 1280×720 RGB565 帧约为：
+
+```text
+1280 × 720 × 2 ≈ 1.76 MiB
+```
+
+两者还要共享 LVGL、字体、ISP、JPEG、DMA 描述符和系统堆。即使底层链接问题修好，实时预览仍需限制分辨率、帧率和缓冲数量。
+
+### 当前正确的推进顺序
+
+现在不要继续用撕裂的 `desktop_camera` 固件做演示。应按以下顺序修复：
+
+```text
+1. 保留 stable/desktop 和 demo 两份独立固件作为回退
+2. 清理 desktop_camera 的构建生成物
+3. 让共享 GDMA/color 源只编译一次
+4. 让摄像头 HAL 只在摄像头配置中进入构建
+5. 将摄像头 IRQ 兼容从全局 esp_irq.c 中隔离
+6. 使 desktop_camera 在摄像头未启动时与 desktop 完全一致
+7. 同一固件中先做 NSH 单帧采集
+8. 再做跌倒监护页面单帧采集
+9. 最后才做 320×180、5 FPS 的低帧率预览
+```
+
+“方案一”指：同一个固件，开机只运行桌面，进入跌倒监护页面时按需启动摄像头，离开页面时停止并释放摄像头。该方案可以降低运行时资源冲突，但不能跳过共享 GDMA、IRQ、HAL 和构建隔离修复。
+
+### 当前其他 AI 接手时的注意事项
+
+- 不要把 `desktop_camera` 当前镜像当作稳定桌面镜像；它已经在真机上出现底部蓝色撕裂。
+- 不要覆盖或重置 `stable/esp32p4-desktop`；它是已推送的稳定桌面回退基线。
+- 不要提交 `chip/esp-hal-3rdparty/`、`nuttx/nuttx.bin`、`nuttx/.config` 或 `.built` 文件。
+- 当前 merge 分支的修复仍未提交、未推送，修改前应先查看 `git status`。
+- 摄像头分支原配置是 `demo`，桌面分支原配置是 `desktop`；两者分别编译成功不代表组合配置可以同时运行。
+- 真正的单固件联动需要新增 `camera_session` 生命周期层，不能直接把 `p4x_camera_csi.c` 当作 LVGL 后台服务。
+
+
+## 43. 组合固件冲突修复：共享中断与摄像头启停（2026-09-28）
+
+当前分支仍为 `merge/esp32p4-desktop-camera`。用户确认独立桌面和摄像头已分别在同一块板上验证，本轮目标是修复组合模式；用户自行烧录，本文不宣称真机联合验收通过。
+
+### 43.1 已实施修复
+
+- 恢复合并时删除的 I2C READ、END 命令码，修复 GT911/SC2336 共用 I2C 读取路径；修正 TRACE 的 RV32 时间格式参数。
+- 原 `esp_os_intr_alloc_intrstatus()` 通过单个 source→IRQ 槽返回句柄，无法表达 DW-GDMA 多通道共享源；现在由 `esp_alloc_native_irq()` 保存每次申请的独立 IDF 句柄，启停与释放按实际句柄处理。分配时先禁用中断，发布映射后再依 flags 启用。
+- 原 `esp_os_intr_free()` 把 IDF 原生句柄强转为另一种结构体读取 IRQ。现在按句柄查找并释放对应注册项，不会因摄像头释放而误取 LCD 句柄。
+- HAL 中断经 `riscv_doirq()` 和 NuttX 公共 demultiplexer 分发，保留中断上下文和调度处理；移除绕过 NuttX 的直接 IDF handler 回调。demultiplexer 使用实际触发的 CPU vector；修正 edge/level 判断。
+- ISP 中断也接入相同适配。DW-GDMA 删除时先移除通道 ISR，再释放它引用的 group。
+- FreeRTOS 兼容临界区从空操作改为保存/恢复 IRQ 状态的递归自旋锁；队列数据复制使用 IRQ-safe 自旋锁，避免 ISR 获取 mutex；超时换算使用 NuttX tick 配置。
+- CSI stop 与 completion 重启 DMA 的路径串行化；停止后到来的 completion 不再重新启动该通道。采集入口串行化，按实际启用/启动状态清理；stop 失败保留 DMA 所有内存并报告需复位。
+- Make/CMake 中共享 DW-GDMA/color 源去重，摄像头专用源与 FreeRTOS include 受摄像头配置控制。HAL 改动已完整同步到 `board/contest_board/patches/esp-hal-openvela-compat.patch`。
+
+以上是代码确认的问题和对应修复。第 42 节“相同撕裂说明静态链接/共享资源就是根因”的判断仍需真机证据；本轮不将该推断记为已定位的唯一原因。
+
+### 43.2 验证与组合镜像
+
+- 最终 `desktop_camera` 完整重编译成功：`Generated: nuttx.bin`，无重复目标警告。
+- 主机回归测试直接提取实际 IRQ 所有权与分发函数，用模拟分配器验证独立句柄、ISR 上下文、100 次重复申请/释放、失败回滚、释放摄像头后 LCD 回调仍有效、边沿/电平 ACK。ASan/UBSan 通过；容器 ptrace 限制下禁用 LeakSanitizer。
+- HAL patch 反向检查通过；`git diff --check` 通过。
+- ELF 确认同时包含 `desktop_boot_main`、`p4x_selftest_main`、`p4x_camera_capture_csi`、`esp_cam_new_csi_ctlr`、`fallguard_show` 和新 IRQ 适配函数。
+- 构建仍有既有格式/宏警告、未启用的 ISP AE/AF/AWB/Histogram 队列接口声明警告；不宣称全仓零警告或这些可选功能已支持。
+- CMake 同步了源清单，本轮实际固件使用 Make 构建，未做 CMake 构建验收。
+
+归档（相对 openvela 根目录）：
+
+```text
+artifacts/merge-desktop-camera/20260928-shared-irq-repair/desktop_camera/nuttx.bin
+大小：737944 字节
+SHA-256：f1bd80c6a76ee9ece5ca6d15b5357c46ff6c8cc72c31bfe169199702ec302fc9
+```
+
+同目录保存 ELF、最终 config、System.map、build.log、源码差异和校验清单。`nuttx/nuttx.bin` 当前也是该组合版本。未提交、未推送、未烧录。
+
+回归命令：
+
+```bash
+cd /home/mi/Developer/openvela
+ASAN_OPTIONS=detect_leaks=0 python3   contest2026_288_Bugyindudadui/board/contest_board/tests/test_shared_irq.py
+```
+
+### 43.3 用户烧录和联合验收
+
+下面命令由用户执行；先确认板接 J20 及实际串口编号，关闭占用串口的终端。
+
+```bash
+cd /home/mi/Developer/openvela
+export PATH="$HOME/.local/bin:$PATH"
+python3 -m serial.tools.list_ports -v
+
+# 按枚举结果设置串口
+LCD_PORT=/dev/ttyACM0
+FW_DIR=artifacts/merge-desktop-camera/20260928-shared-irq-repair/desktop_camera
+(cd "$FW_DIR" && sha256sum -c SHA256SUMS) && esptool --chip esp32p4 --port "$LCD_PORT" --baud 921600   --after hard-reset write-flash 0x2000 "$FW_DIR/nuttx.bin"
+```
+
+成功需出现 `Hash of data verified.`。复位重新枚举后连接：
+
+```bash
+python3 -m serial.tools.miniterm /dev/ttyACM0 115200 --raw
+```
+
+NSH 中逐条执行，先确认锁屏/桌面/触摸，再启动摄像头：
+
+```text
+free
+p4x_selftest --camera
+p4x_selftest --camera-capture
+free
+p4x_selftest --camera-capture
+free
+```
+
+观察 `stage wait ret=0`、`on_trans_finished` 非零及有效图像统计，同时查看桌面是否继续刷新、触摸是否正常。重复至少 3 次，验证摄像头结束后仍可切页/拖动控件，随后断电重启复测。需要 JPEG 链路时再运行 `p4x_selftest --jpeg-capture`。
+
+当前仅集成桌面与 NSH 摄像头命令，不把摄像头预览接进跌倒监护页面。若仍有黑屏/撕裂，保留完整启动日志与首次采集日志，分别判断发生在摄像头启动前、采集中还是释放后；不能直接宣布问题彻底解决。
+
+
+## 44. 组合固件串口传图损坏修复（2026-09-28）
+
+用户实测 RGB565 连续六次长度不足，第七次未捕获的 Base64 错误导致监控退出；JPEG 也报 Incorrect padding。本轮读取保存日志确认每次板端 `stage wait ret=0`、completion=5、PASS one frame。`0x5d` GT911 I2C TRACE 插入 THUMB/jpg 行，属于确认的协议污染；USB BEST_EFFORT 超时丢字符是同时存在的可靠性缺口。
+
+修复：
+
+- desktop_camera 关闭 I2C_TRACE，保留桌面、触摸、摄像头和无主机读取时的独立启动。
+- 新增任务上下文的 USB frame begin/write/end。传图期间独占硬件发送通路，普通控制台日志被丢弃；不暂停触摸和桌面任务。等待 FIFO 时让出 CPU，不在关中断期间等待主机；按照实际写入长度推进，不丢弃图像字节。连续 2 秒无发送进展返回 ETIMEDOUT，结束会话恢复普通日志。
+- RGB565 与 JPEG 的头、Base64 和尾全部走同一传输会话。加入前导换行防止上一条日志的残行污染头。JPEG selftest 与真实采集共用互斥锁。
+- thumb_image 严格解析独立 payload 行，必须有 footer，保留长度和 checksum 校验；Base64 异常统一包装为 ThumbError，使监控可以记录失败并重试，不放宽损坏图像校验。
+
+验证：6 项解析测试通过（含现场失败日志），USB 发送函数主机 ASan/UBSan 测试通过（短写、等待、日志隔离、主机断开超时及释放），git diff --check 通过。容器禁用 LeakSanitizer。组合配置完整编译及最终增量复核成功；仍有既有 HAL/可选 ISP 警告。尚未烧录，真机成功率待用户验收。
+
+本次构建使用根目录 build.sh desktop_camera。切换配置前临时保留现有固定 HAL，执行 distclean 后恢复，校验已应用的 HAL 补丁；不是重新下载 HAL 的全新依赖复现。
+
+新镜像：`artifacts/merge-desktop-camera/20260928-transport-fix/nuttx.bin`（相对 openvela 根目录），738004 字节。
+SHA-256：`11e8b274c712b15782a48b6f3ff326eab8cd60c3c9f91a9032c0b24529df51e3`。
+归档含 ELF/config/System.map、完整及最终构建日志、源码差异、SHA256SUMS。分支保持 merge/esp32p4-desktop-camera，未提交、未推送、未烧录。
+
+用户烧录：
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-transport-fix/nuttx.bin
+```
+
+先关闭其他读取串口的终端，在比赛仓库执行（不发送告警）：
+
+```bash
+python tools/monitor/fall_watch.py --jpeg --once --dry-run --backend mock
+python tools/monitor/fall_watch.py --once --dry-run --backend mock
+python tools/monitor/fall_watch.py --jpeg --interval 10 --dry-run --backend mock
+```
+
+验收 JPEG/RGB565 都能保存图像且校验通过、连续采集至少 10 次，传图时触摸/桌面正常；断开读取端后桌面继续运行，重新运行监控可恢复传输。必须使用新固件，脚本异常捕获不能修复旧固件已丢失的数据。
+
+### 44.1 真机第一次完整 JPEG 与接收等待修正
+
+2026-09-28 20:22:09 的日志确认 26,381 字节 JPEG 完整解析成功，存在 jpeg_sw: end、PASS one frame 和 NSH 提示符；mock 结果不是实际跌倒识别验收。20:22:59 的第二帧头声明 99,871 字节，30 秒截止时仍在 jpg payload 中，未收到 end/PASS。随后握手零字节，尚不能据此确定整板卡死原因。
+
+主机读取原先固定 sleep(0.03)，与小 USB 包背压叠加时接收速率低。board_console.py 改为 select 等待数据就绪，保留实时日志；采集预算耗尽后额外排空最多 30 秒，避免立即关闭读取端。八项主机测试通过（含小包分段接收及损坏日志解析）；尚待同一固件复位后真机重试，不宣称速度及超时恢复已在板上验证。此次仅修改主机脚本，无新固件。
+
+
+### 44.2 USB 发送从 tick 轮询改为中断唤醒
+
+20:29:10 真机帧为 139436 字节 JPEG，实时日志最终收到 end/PASS/NSH，图像链路完成，但接收约 1.9 KB/s。主机 select 改动未消除此限速，因此此前将主要瓶颈归于主机 30 ms sleep 的判断不充分。
+
+本轮修改 esp_usbserial_frame_write：取消 FIFO 忙时 nxsig_usleep(1000)（系统 tick=10 ms），改为 SERIAL_IN_EMPTY 中断 post semaphore 唤醒任务。开启中断后重查 FIFO，防止就绪竞争；普通日志不能关闭传图中断；传输结束禁用该中断。保留 2 秒无进展等待限制和日志隔离。主机发送单元测试模拟 ISR、短写、无主机超时通过，组合配置 build.sh 增量编译成功，未烧录，吞吐待真机验证。
+
+归档：artifacts/merge-desktop-camera/20260928-usb-irq-tx/nuttx.bin
+大小：738260 字节，SHA-256：043e97388b7e2d102437a415c13944d9bc460476f9bf4f802220d24274206ba7。
