@@ -680,13 +680,16 @@ static void selftest_print_json(
 static void selftest_show_usage(FAR FILE *stream,
                                 FAR const char *program)
 {
-  fprintf(stream, "Usage: %s [--json | --camera | --help]\n", program);
+  fprintf(stream, "Usage: %s [--json | --camera | --jpeg-selftest | --help]\n",
+          program);
   fprintf(stream, "       %s --camera-capture "
                   "[<dig_fine> <dig_coarse> <ang>]\n", program);
-  fprintf(stream, "         optional SC2336 gain override written to 0x3e07, "
-                  "0x3e06, 0x3e09\n");
-  fprintf(stream, "         (accepts 0x.. or decimal; default is the "
-                  "sensor's minimum gain)\n");
+  fprintf(stream, "       %s --jpeg-capture [--no-awb] "
+                  "[<dig_fine> <dig_coarse> <ang>]\n", program);
+  fprintf(stream, "         gain override written to 0x3e07, 0x3e06, 0x3e09 "
+                  "(0x.. or decimal; default 0x80 0x00 0x10)\n");
+  fprintf(stream, "         --jpeg-capture sends a 1280x720 JPEG instead of "
+                  "the RGB565 thumbnail; grey-world AWB unless --no-awb\n");
 }
 
 /****************************************************************************
@@ -713,31 +716,51 @@ int main(int argc, FAR char *argv[])
   camera_capture_mode = false;
   camera_gain_set = false;
 
-  /* "--camera-capture <fine> <coarse> <ang>": optional gain override so the
-   * sensor gain can be swept from the shell without rebuilding.
+  /* "--camera-capture | --jpeg-capture [--no-awb]" plus an optional
+   * "<fine> <coarse> <ang>" gain override.  Set both switches on every run:
+   * builtin-app globals persist between invocations.
    */
 
-  if (argc == 5 && (strcmp(argv[1], "--camera-capture") == 0 ||
+  if (argc >= 2 && (strcmp(argv[1], "--camera-capture") == 0 ||
                     strcmp(argv[1], "--jpeg-capture") == 0))
     {
+      int argi = 2;
+
       g_p4x_jpeg_emit = (strcmp(argv[1], "--jpeg-capture") == 0);
-      for (i = 0; i < 3; i++)
+      g_p4x_jpeg_awb = g_p4x_jpeg_emit;
+      if (g_p4x_jpeg_emit && argi < argc &&
+          strcmp(argv[argi], "--no-awb") == 0)
         {
-          errno = 0;
-          value = strtol(argv[2 + i], &endptr, 0);
-          if (errno != 0 || endptr == argv[2 + i] || *endptr != '\0' ||
-              value < 0 || value > 0xff)
+          g_p4x_jpeg_awb = 0;
+          argi++;
+        }
+
+      if (argc - argi == 3)
+        {
+          for (i = 0; i < 3; i++)
             {
-              fprintf(stderr, "invalid gain byte: %s\n", argv[2 + i]);
-              selftest_show_usage(stderr, argv[0]);
-              return SELFTEST_EXIT_USAGE;
+              errno = 0;
+              value = strtol(argv[argi + i], &endptr, 0);
+              if (errno != 0 || endptr == argv[argi + i] ||
+                  *endptr != '\0' || value < 0 || value > 0xff)
+                {
+                  fprintf(stderr, "invalid gain byte: %s\n", argv[argi + i]);
+                  selftest_show_usage(stderr, argv[0]);
+                  return SELFTEST_EXIT_USAGE;
+                }
+
+              camera_gain[i] = (int)value;
             }
 
-          camera_gain[i] = (int)value;
+          camera_gain_set = true;
+        }
+      else if (argc != argi)
+        {
+          selftest_show_usage(stderr, argv[0]);
+          return SELFTEST_EXIT_USAGE;
         }
 
       camera_capture_mode = true;
-      camera_gain_set = true;
     }
   else if (argc == 2)
     {
@@ -748,15 +771,6 @@ int main(int argc, FAR char *argv[])
       else if (strcmp(argv[1], "--camera") == 0)
         {
           camera_mode = true;
-        }
-      else if (strcmp(argv[1], "--camera-capture") == 0)
-        {
-          camera_capture_mode = true;
-        }
-      else if (strcmp(argv[1], "--jpeg-capture") == 0)
-        {
-          g_p4x_jpeg_emit = 1;
-          camera_capture_mode = true;
         }
       else if (strcmp(argv[1], "--jpeg-selftest") == 0)
         {

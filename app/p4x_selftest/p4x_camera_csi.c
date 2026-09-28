@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <nuttx/i2c/i2c_master.h>
@@ -949,27 +950,36 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   printf("camera_capture: thumb end sum32=0x%08lx\n", (unsigned long)sum);
 }
 
-/* Software-JPEG emit switch, set by the --jpeg-capture command. */
+/* Software-JPEG switches, set by the --jpeg-capture command. */
 
 int g_p4x_jpeg_emit;
+int g_p4x_jpeg_awb;
+
+/* Grey-world target mean, permille; same as thumb_image._grey_world. */
+
+#define P4X_JPEG_AWB_TARGET 580
 
 /****************************************************************************
  * Name: p4x_jpeg_emit_frame
  *
  * Description:
- *   Encode the captured RGB565 frame to a baseline JPEG on the CPU and print
- *   it as prefixed base64 lines so the host can save a .jpg directly.  Pure
- *   software (no DMA2D/JPEG peripheral), so it is immune to the hardware-JPEG
- *   bring-up gap and its sensor-I2C conflict.
+ *   Encode the RGB565 frame to a baseline JPEG on the CPU and print it as
+ *   "jpg:" base64 lines.  With awb set, grey-world gains are applied during
+ *   encoding, since the stdlib-only host cannot touch JPEG pixels.
  *
  ****************************************************************************/
 
-static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height)
+static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
+                                int awb)
 {
   static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                             "abcdefghijklmnopqrstuvwxyz"
                             "0123456789+/";
   const int cap = 512 * 1024;
+  uint32_t gains[3];
+  struct timespec t0;
+  struct timespec t1;
+  unsigned long enc_ms;
   uint8_t *jpg;
   uint32_t sum = 0;
   char line[80];
@@ -991,8 +1001,18 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height)
       return;
     }
 
+  clock_gettime(CLOCK_MONOTONIC, &t0);
+  if (awb)
+    {
+      jpeg_sw_grey_world((const uint16_t *)frame, width * height,
+                         P4X_JPEG_AWB_TARGET, gains);
+    }
+
   n = jpeg_sw_encode_rgb565((const uint16_t *)frame, width, height, 80,
-                            jpg, cap);
+                            awb ? gains : NULL, jpg, cap);
+  clock_gettime(CLOCK_MONOTONIC, &t1);
+  enc_ms = (unsigned long)((t1.tv_sec - t0.tv_sec) * 1000 +
+                           (t1.tv_nsec - t0.tv_nsec) / 1000000);
   if (n < 0)
     {
       printf("jpeg_sw: encode failed (overflow, cap=%d)\n", cap);
@@ -1005,8 +1025,16 @@ static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height)
       sum += jpg[k];
     }
 
-  printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx\n",
-         n, width, height, (unsigned long)sum);
+  if (awb)
+    {
+      printf("jpeg_sw: awb gain_q16 r=%lu g=%lu b=%lu\n",
+             (unsigned long)gains[0], (unsigned long)gains[1],
+             (unsigned long)gains[2]);
+    }
+
+  printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx awb=%s "
+         "enc_ms=%lu\n", n, width, height, (unsigned long)sum,
+         awb ? "on" : "off", enc_ms);
 
   for (k = 0; k < n; k++)
     {
@@ -1087,7 +1115,9 @@ int p4x_jpeg_selftest(void)
         }
     }
 
-  p4x_jpeg_emit_frame((const uint8_t *)img, W, H);
+  /* AWB off: keep the synthetic output byte-reproducible on the host. */
+
+  p4x_jpeg_emit_frame((const uint8_t *)img, W, H, 0);
   free(img);
   return 0;
 }
@@ -1374,10 +1404,19 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   if (ret == 0 && capture.finished)
     {
       csi_report_stats(frame);
-      csi_emit_thumbnail(frame);
+
+      /* The JPEG replaces the thumbnail: sending both would cost the
+       * ~7 s of THUMB traffic that JPEG is meant to remove.
+       */
+
       if (g_p4x_jpeg_emit)
         {
-          p4x_jpeg_emit_frame(frame, SC2336_WIDTH, SC2336_HEIGHT);
+          p4x_jpeg_emit_frame(frame, SC2336_WIDTH, SC2336_HEIGHT,
+                              g_p4x_jpeg_awb);
+        }
+      else
+        {
+          csi_emit_thumbnail(frame);
         }
     }
 
@@ -1394,7 +1433,8 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
            */
 
           printf("camera_capture: frame not saved to %s (errno=%d); "
-                 "use the THUMB lines above instead\n", output, errno);
+                 "use the %s lines above instead\n", output, errno,
+                 g_p4x_jpeg_emit ? "jpg" : "THUMB");
         }
       else
         {

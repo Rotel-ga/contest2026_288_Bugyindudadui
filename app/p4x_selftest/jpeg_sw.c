@@ -1,16 +1,15 @@
 /****************************************************************************
  * app/p4x_selftest/jpeg_sw.c
  *
- * Self-contained baseline JPEG encoder (RGB565 -> JPEG, 4:4:4, no chroma
- * subsampling).  Uses the standard JPEG Annex K quantization and Huffman
- * tables and an orthonormal 8x8 DCT.  Pure C + libm; no peripheral access.
+ * Self-contained baseline JPEG encoder (RGB565 -> JPEG, 4:4:4), Annex K
+ * tables.  Integer only (fixed-point colour conversion, Q13 matrix DCT): this
+ * target has no FPU and the float version took ~33 s per 1280x720 frame.
  *
  * SPDX-License-Identifier: Apache-2.0
  ****************************************************************************/
 
 #include "jpeg_sw.h"
 #include <string.h>
-#include <math.h>
 
 /* ---- Standard tables (JPEG Annex K) ------------------------------------ */
 
@@ -37,6 +36,20 @@ static const int CQT[64] =
   24,26,56,99,99,99,99,99, 47,66,99,99,99,99,99,99,
   99,99,99,99,99,99,99,99, 99,99,99,99,99,99,99,99,
   99,99,99,99,99,99,99,99, 99,99,99,99,99,99,99,99
+};
+
+/* DCT basis in Q13: round(c(k) * cos((2n + 1) * k * pi / 16) * 8192). */
+
+static const int16_t DCTM[8][8] =
+{
+  {  2896,   2896,   2896,   2896,   2896,   2896,   2896,   2896},
+  {  4017,   3406,   2276,    799,   -799,  -2276,  -3406,  -4017},
+  {  3784,   1567,  -1567,  -3784,  -3784,  -1567,   1567,   3784},
+  {  3406,   -799,  -4017,  -2276,   2276,   4017,    799,  -3406},
+  {  2896,  -2896,  -2896,   2896,   2896,  -2896,  -2896,   2896},
+  {  2276,  -4017,    799,   3406,  -3406,   -799,   4017,  -2276},
+  {  1567,  -3784,   3784,  -1567,  -1567,   3784,  -3784,   1567},
+  {   799,  -2276,   3406,  -4017,   4017,  -3406,   2276,   -799}
 };
 
 static const uint8_t DC_L_BITS[16] = {0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0};
@@ -175,55 +188,45 @@ static int category(int v)
   return c;
 }
 
-/* Encode one 8x8 spatial block (already level-shifted floats) into the
- * entropy stream. quant is the natural-order scaled quant table.
+/* Encode one 8x8 block of level-shifted samples.  div is the natural-order
+ * quant step << 16, matching the 2^16 scale of the column pass.
  */
-static void encode_block(wr_t *w, const float *blk, const int *quant,
-                         const huff_t *dc, const huff_t *ac, const float M[8][8],
-                         int *prev_dc)
+static void encode_block(wr_t *w, const int *blk, const int *div,
+                         const huff_t *dc, const huff_t *ac, int *prev_dc)
 {
-  float row[64];
-  float dct[64];
+  int row[64];
   int q[64];
-  int i;
   int u;
   int v;
-  int x;
   int y;
 
-  /* 1D DCT along x for each row */
+  /* Rows: |s| < 2^23; keep 3 fractional bits. */
   for (y = 0; y < 8; y++)
     {
+      const int *p = &blk[y * 8];
       for (u = 0; u < 8; u++)
         {
-          float s = 0.0f;
-          for (x = 0; x < 8; x++)
-            {
-              s += M[u][x] * blk[y * 8 + x];
-            }
-          row[y * 8 + u] = s;
+          const int16_t *m = DCTM[u];
+          int s = m[0] * p[0] + m[1] * p[1] + m[2] * p[2] + m[3] * p[3] +
+                  m[4] * p[4] + m[5] * p[5] + m[6] * p[6] + m[7] * p[7];
+          row[y * 8 + u] = (s + (1 << 9)) >> 10;
         }
     }
 
-  /* 1D DCT along y for each column -> dct[v*8+u] */
+  /* Columns: s = DCT * 2^16 (|s| < 2^28), rounded quantisation. */
   for (u = 0; u < 8; u++)
     {
       for (v = 0; v < 8; v++)
         {
-          float s = 0.0f;
+          const int16_t *m = DCTM[v];
+          int d = div[v * 8 + u];
+          int s = 0;
           for (y = 0; y < 8; y++)
             {
-              s += M[v][y] * row[y * 8 + u];
+              s += m[y] * row[y * 8 + u];
             }
-          dct[v * 8 + u] = s;
+          q[v * 8 + u] = (s >= 0 ? s + (d >> 1) : s - (d >> 1)) / d;
         }
-    }
-
-  /* quantize (natural order) */
-  for (i = 0; i < 64; i++)
-    {
-      float f = dct[i] / (float)quant[i];
-      q[i] = (int)floorf(f + 0.5f);
     }
 
   /* DC: differential */
@@ -269,19 +272,104 @@ static void encode_block(wr_t *w, const float *blk, const int *quant,
   }
 }
 
+/* ---- RGB565 expansion ------------------------------------------------- */
+
+/* 5/6-bit -> 8-bit with the host's rounding (thumb_image._to_8bit), then an
+ * optional Q16 gain with clamp.  Baking the gain into the tables makes AWB
+ * free per pixel.
+ */
+
+static void expand_luts(const uint32_t *gain, uint8_t r8[32], uint8_t g8[64],
+                        uint8_t b8[32])
+{
+  int v;
+
+  for (v = 0; v < 64; v++)
+    {
+      uint64_t g = (uint64_t)((v * 255 + 31) / 63);
+
+      if (gain != NULL)
+        {
+          g = (g * gain[1] + 32768) >> 16;
+        }
+
+      g8[v] = (uint8_t)(g > 255 ? 255 : g);
+
+      if (v < 32)
+        {
+          uint64_t r = (uint64_t)((v * 255 + 15) / 31);
+          uint64_t b = r;
+
+          if (gain != NULL)
+            {
+              r = (r * gain[0] + 32768) >> 16;
+              b = (b * gain[2] + 32768) >> 16;
+            }
+
+          r8[v] = (uint8_t)(r > 255 ? 255 : r);
+          b8[v] = (uint8_t)(b > 255 ? 255 : b);
+        }
+    }
+}
+
+void jpeg_sw_grey_world(const uint16_t *rgb565, int npx, int target_permille,
+                        uint32_t gain_q16[3])
+{
+  uint8_t r8[32];
+  uint8_t g8[64];
+  uint8_t b8[32];
+  uint32_t sum[3] =
+  {
+    0, 0, 0
+  };
+
+  uint64_t full = (uint64_t)255 * (uint64_t)(npx > 0 ? npx : 1);
+  int i;
+
+  expand_luts(NULL, r8, g8, b8);
+  for (i = 0; i < npx; i++)
+    {
+      uint16_t px = rgb565[i];
+
+      sum[0] += r8[px >> 11];
+      sum[1] += g8[(px >> 5) & 0x3f];
+      sum[2] += b8[px & 0x1f];
+    }
+
+  /* gain = target / mean; unity for a near-black channel, as on the host. */
+
+  for (i = 0; i < 3; i++)
+    {
+      if ((uint64_t)sum[i] * 1000 <= full)
+        {
+          gain_q16[i] = 1u << 16;
+        }
+      else
+        {
+          gain_q16[i] = (uint32_t)((((uint64_t)target_permille * full) << 16) /
+                                   ((uint64_t)sum[i] * 1000));
+        }
+    }
+}
+
 /* ---- main encoder ------------------------------------------------------ */
 
 int jpeg_sw_encode_rgb565(const uint16_t *rgb565, int width, int height,
-                          int quality, uint8_t *out, int out_cap)
+                          int quality, const uint32_t *gain_q16,
+                          uint8_t *out, int out_cap)
 {
   wr_t w;
   static huff_t hdc_l;
   static huff_t hac_l;
   static huff_t hdc_c;
   static huff_t hac_c;
-  float M[8][8];
+  uint8_t r8[32];
+  uint8_t g8[64];
+  uint8_t b8[32];
   int lq[64];
   int cq[64];
+  int ld[64];
+  int cd[64];
   int scale;
   int i;
   int mx;
@@ -312,19 +400,11 @@ int jpeg_sw_encode_rgb565(const uint16_t *rgb565, int width, int height,
       int b = (CQT[i] * scale + 50) / 100;
       lq[i] = a < 1 ? 1 : (a > 255 ? 255 : a);
       cq[i] = b < 1 ? 1 : (b > 255 ? 255 : b);
+      ld[i] = lq[i] << 16;
+      cd[i] = cq[i] << 16;
     }
 
-  /* orthonormal DCT matrix M[k][n] */
-  for (i = 0; i < 8; i++)
-    {
-      int n;
-      float ck = (i == 0) ? 0.353553390593273762f : 0.5f;
-      for (n = 0; n < 8; n++)
-        {
-          M[i][n] = ck * cosf((2.0f * n + 1.0f) * i * 3.14159265358979324f
-                              / 16.0f);
-        }
-    }
+  expand_luts(gain_q16, r8, g8, b8);
 
   huff_build(&hdc_l, DC_L_BITS, DC_L_VAL);
   huff_build(&hac_l, AC_L_BITS, AC_L_VAL);
@@ -407,9 +487,9 @@ int jpeg_sw_encode_rgb565(const uint16_t *rgb565, int width, int height,
     {
       for (mx = 0; mx < width; mx += 8)
         {
-          float yb[64];
-          float cb[64];
-          float cr[64];
+          int yb[64];
+          int cb[64];
+          int cr[64];
           int r;
           int c;
           for (r = 0; r < 8; r++)
@@ -419,23 +499,32 @@ int jpeg_sw_encode_rgb565(const uint16_t *rgb565, int width, int height,
               for (c = 0; c < 8; c++)
                 {
                   int sx = mx + c;
+                  int k = r * 8 + c;
                   int R;
                   int G;
                   int B;
                   uint16_t px;
                   if (sx >= width) sx = width - 1;
                   px = rgb565[sy * width + sx];
-                  R = ((px >> 11) & 0x1f) * 255 / 31;
-                  G = ((px >> 5) & 0x3f) * 255 / 63;
-                  B = (px & 0x1f) * 255 / 31;
-                  yb[r * 8 + c] =  0.299f * R + 0.587f * G + 0.114f * B - 128.0f;
-                  cb[r * 8 + c] = -0.168736f * R - 0.331264f * G + 0.5f * B;
-                  cr[r * 8 + c] =  0.5f * R - 0.418688f * G - 0.081312f * B;
+                  R = r8[px >> 11];
+                  G = g8[(px >> 5) & 0x3f];
+                  B = b8[px & 0x1f];
+
+                  /* BT.601 full range in Q16; the +128 bias keeps the
+                   * chroma sums non-negative before the shift.
+                   */
+
+                  yb[k] = ((19595 * R + 38470 * G + 7471 * B + 32768) >> 16)
+                          - 128;
+                  cb[k] = ((-11059 * R - 21709 * G + 32768 * B +
+                            (128 << 16) + 32768) >> 16) - 128;
+                  cr[k] = ((32768 * R - 27439 * G - 5329 * B +
+                            (128 << 16) + 32768) >> 16) - 128;
                 }
             }
-          encode_block(&w, yb, lq, &hdc_l, &hac_l, M, &prev_dc_y);
-          encode_block(&w, cb, cq, &hdc_c, &hac_c, M, &prev_dc_cb);
-          encode_block(&w, cr, cq, &hdc_c, &hac_c, M, &prev_dc_cr);
+          encode_block(&w, yb, ld, &hdc_l, &hac_l, &prev_dc_y);
+          encode_block(&w, cb, cd, &hdc_c, &hac_c, &prev_dc_cb);
+          encode_block(&w, cr, cd, &hdc_c, &hac_c, &prev_dc_cr);
           if (w.fail)
             {
               return -1;
