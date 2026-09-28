@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "desktop.h"
+#include "../fallguard/fallguard.h"
 #include <nuttx/mutex.h>
 #include <stdio.h>
 #include <string.h>
@@ -47,6 +48,7 @@ int main(int argc, char *argv[])
   while (!g_desk.exit_requested)
     {
       lv_timer_handler();
+      fallguard_poll();
       if (first)
         {
           printf("DESKTOP READY\n");
