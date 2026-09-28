@@ -51,6 +51,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ai_client                                    # noqa: E402
 import board_console                                # noqa: E402
+import panel_control
 import jpeg_frame                                   # noqa: E402
 import thumb_image                                  # noqa: E402
 
@@ -131,6 +132,9 @@ def main():
     loop.add_argument("--interval", type=float, default=15.0,
                       help="seconds between captures, measured from the start "
                            "of one capture to the next (default: 15)")
+    loop.add_argument("--panel-control", action="store_true",
+                      help="wait for the board Start/Stop button; uses the selected backend; "
+                           "--once means one frame per start request")
     loop.add_argument("--once", action="store_true",
                       help="capture and analyse a single frame, then exit")
     loop.add_argument("--keep", type=int, default=500,
@@ -192,6 +196,8 @@ def main():
               file=sys.stderr)
         return 2
 
+    if args.panel_control and args.from_log:
+        ap.error("--panel-control 需要真实串口，不能与 --from-log 同用")
     if args.from_log:
         args.once = True
 
@@ -251,8 +257,13 @@ def main():
             except ai_client.AiError as error:
                 print(f"启动通知发送失败：{error}", file=sys.stderr)
 
+        panel = panel_control.PanelControl(console, args.once) if args.panel_control else None
+        next_capture = 0.0
+        if panel:
+            print("面板控制已就绪：请点击板子上的开始监控；停止在当前帧结束后生效。", flush=True)
         try:
             while True:
+                panel_state = panel.wait_start(next_capture) if panel else None
                 started = time.monotonic()
                 frame_id += 1
                 now = time.strftime("%H:%M:%S")
@@ -318,6 +329,10 @@ def main():
                         except ai_client.AiError as notify_error:
                             print(f"异常通知发送失败：{notify_error}",
                                   file=sys.stderr)
+                    if panel:
+                        panel.finish(panel_state, False)
+                        next_capture = started + args.interval
+                        continue
                     if args.once:
                         return 1
                     time.sleep(max(0.0, args.interval -
@@ -395,6 +410,10 @@ def main():
                 prune(frames_dir, "*.jpg", args.keep)
                 prune(logs_dir, "*.log", args.keep)
 
+                if panel:
+                    panel.finish(panel_state, bool(event.get("ok")), fall=fall)
+                    next_capture = started + args.interval
+                    continue
                 if args.once:
                     return 0
 
@@ -406,6 +425,9 @@ def main():
                           f"--interval {args.interval:g}s，立即开始下一轮。")
                 else:
                     time.sleep(args.interval - elapsed)
+        except (RuntimeError, board_console.BoardBusy, OSError) as error:
+            print(f"面板/串口连接失败：{error}", file=sys.stderr)
+            return 1
         except KeyboardInterrupt:
             print("\n监控已停止。")
             return 0

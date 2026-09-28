@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "fallguard.h"
+#include "panel_control.h"
 #include "../desktop/desktop.h"
 #include <stdio.h>
 
@@ -14,6 +15,67 @@ enum fallguard_status
 static enum fallguard_status g_status = FALLGUARD_NORMAL;
 static lv_obj_t *g_status_label;
 static lv_obj_t *g_status_dot;
+static lv_obj_t *g_screen;
+static lv_obj_t *g_pc_label;
+static const char *g_last_pc_text;
+static void status_render(void);
+
+void fallguard_poll(void)
+{
+  struct panel_control_state state;
+  const char *text;
+
+  if (g_screen == NULL || g_screen != g_desk.screen)
+    {
+      return;
+    }
+
+  panel_control_snapshot(&state);
+  if (!state.connected)
+    {
+      text = "PC offline";
+    }
+  else if (state.revision != state.acknowledged)
+    {
+      text = state.requested ? "Waiting for PC" : "Stopping after frame";
+    }
+  else if (!state.requested)
+    {
+      text = "PC ready / stopped";
+    }
+  else if (state.pc_state == PANEL_PC_ERROR)
+    {
+      text = "Monitor error / retry";
+    }
+  else if (state.pc_state == PANEL_PC_RUNNING)
+    {
+      text = "Monitoring";
+    }
+  else if (state.pc_state == PANEL_PC_FALL)
+    {
+      text = "Fall detected";
+    }
+  else if (state.pc_state == PANEL_PC_OK)
+    {
+      text = "No fall detected";
+    }
+  else
+    {
+      text = "Waiting for PC";
+    }
+
+  if (text != g_last_pc_text)
+    {
+      g_status = !state.requested ? FALLGUARD_NORMAL :
+        (state.revision == state.acknowledged && state.pc_state == PANEL_PC_FALL ?
+         FALLGUARD_SUSPECTED :
+         (state.revision == state.acknowledged && state.pc_state == PANEL_PC_OK ?
+          FALLGUARD_NORMAL : FALLGUARD_DETECTING));
+      status_render();
+      lv_label_set_text(g_pc_label, text);
+      g_last_pc_text = text;
+    }
+}
 
 static void status_render(void)
 {
@@ -74,7 +136,9 @@ static void monitoring_toggle(lv_event_t *event)
   lv_obj_t *button = lv_event_get_target(event);
   lv_obj_t *label = lv_obj_get_child(button, 0);
 
-  if (lv_obj_has_state(button, LV_STATE_CHECKED))
+  bool enabled = lv_obj_has_state(button, LV_STATE_CHECKED);
+  panel_control_request(enabled);
+  if (enabled)
     {
       lv_label_set_text(label, "停止监控");
       g_status = FALLGUARD_DETECTING;
@@ -100,7 +164,11 @@ void fallguard_show(void)
   lv_obj_t *card;
   lv_obj_t *monitor;
 
-  g_status = FALLGUARD_NORMAL;
+  struct panel_control_state state;
+  panel_control_snapshot(&state);
+  g_status = state.requested ? FALLGUARD_DETECTING : FALLGUARD_NORMAL;
+  g_screen = screen;
+  g_last_pc_text = NULL;
   g_status_label = NULL;
   g_status_dot = NULL;
   desk_label(screen, "跌倒监护", 56, 35, 600, DESK_TEXT);
@@ -134,13 +202,19 @@ void fallguard_show(void)
   desk_label(card, "最近事件", 24, 125, 220, DESK_MUTED);
   desk_label(card, "暂无异常", 24, 158, 240, DESK_TEXT);
   desk_label(card, "监护模式", 24, 205, 220, DESK_MUTED);
-  desk_label(card, "演示模式", 24, 238, 240, DESK_TEXT);
+  g_pc_label = desk_label(card, "PC offline", 24, 238, 240, DESK_TEXT);
 
   monitor = desk_button(screen, "开始监控", 56, 460, 250, 70,
                         monitoring_toggle, NULL);
   lv_obj_add_flag(monitor, LV_OBJ_FLAG_CHECKABLE);
+  if (state.requested)
+    {
+      lv_obj_add_state(monitor, LV_STATE_CHECKED);
+      lv_label_set_text(lv_obj_get_child(monitor, 0), "停止监控");
+    }
   desk_button(screen, "模拟摔倒", 330, 460, 250, 70,
               simulate_event, NULL);
   status_render();
+  fallguard_poll();
   printf("DESKTOP PAGE fallguard\n");
 }

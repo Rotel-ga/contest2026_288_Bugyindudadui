@@ -2,6 +2,8 @@
 
 ## 0. 交给其他 AI：先看这里，编译 / 烧录 / 验证
 
+**2026-09-28 当前交接入口：**以第 45 节为准。当前分支为 `merge/esp32p4-desktop-camera`，组合修复已提交为 `e465751` 并推送至 Rotel-ga 同名远程分支；第 0 节早期分支要求与第 42～44 节“未提交/未推送”描述属于当时状态。最新 USB 中断发送版已编译，真机速度和连续采集仍待验证。
+
 本节命令针对当前机器，使用 **Bash** 执行。工作区是 `/home/mi/Developer/openvela`，比赛 Git 仓库是其下的 `contest2026_288_Bugyindudadui`，不要在工作区根目录执行该项目的 Git 操作。
 
 **交接要求：**在 `feat/esp32p4-official-lcd` 上继续，驱动主体尽量保持官方一致；修改官方文件时同步维护 `chip/esp_lcd/openvela.patch` 和来源校验。保留用户未提交改动，不要执行 `git reset --hard` 或 `git clean` 清理整个项目。下面的命令是操作说明，不代表已经执行烧录或真机验收。
@@ -2652,3 +2654,114 @@ python tools/monitor/fall_watch.py --jpeg --interval 10 --dry-run --backend mock
 
 归档：artifacts/merge-desktop-camera/20260928-usb-irq-tx/nuttx.bin
 大小：738260 字节，SHA-256：043e97388b7e2d102437a415c13944d9bc460476f9bf4f802220d24274206ba7。
+
+
+## 45. 组合修复提交与远程分支推送记录（2026-09-28）
+
+### 45.1 当前仓库与提交
+
+本地仓库：`/home/mi/Developer/openvela/contest2026_288_Bugyindudadui`。
+当前本地分支：`merge/esp32p4-desktop-camera`。
+
+用户明确要求提交并推送至 Rotel-ga 仓库的同名新分支，已完成：
+
+```text
+远程名：rotel
+远程地址：git@github.com:Rotel-ga/contest2026_288_Bugyindudadui.git
+远程分支：merge/esp32p4-desktop-camera
+提交：e4657510a300026d76a273a04871a06fe55769e3
+说明：fix: integrate desktop camera IRQ ownership and reliable USB frame transport
+```
+
+[远程分支](https://github.com/Rotel-ga/contest2026_288_Bugyindudadui/tree/merge/esp32p4-desktop-camera) · [提交详情](https://github.com/Rotel-ga/contest2026_288_Bugyindudadui/commit/e4657510a300026d76a273a04871a06fe55769e3)
+
+实际推送命令：
+
+```bash
+git push -u rotel HEAD:refs/heads/merge/esp32p4-desktop-camera
+```
+
+Git 返回 `[new branch] HEAD -> merge/esp32p4-desktop-camera`，本地分支已跟踪 `rotel/merge/esp32p4-desktop-camera`。推送后本地 HEAD 与远程跟踪引用均为上述完整提交。未修改远程 `dev-ai-contest-2026`，未创建或合并 PR，未执行强制推送。
+
+### 45.2 提交范围与检查
+
+提交包含 22 个文件的修改：组合配置、I2C 读取回归修复、共享中断句柄管理、CSI 启停与兼容层修复、USB 图像独占传输和中断唤醒、主机接收/握手/解码处理、回归测试及本开发报告截至第 44.2 节的记录。
+
+推送前重新确认：
+
+- 监控脚本 9 项单元测试通过；
+- 共享中断测试通过：独立句柄、ISR 上下文、100 次申请/释放、失败回滚；
+- USB 发送测试通过：短写、日志隔离、ISR 唤醒、主机不接收时超时及释放；
+- HAL 兼容补丁反向检查通过；
+- `git diff --cached --check` 通过。
+
+构建产物、`esp-hal-3rdparty` checkout、本地运行日志及 `app/desktop/.built`、`app/p4x_selftest/.built` 未提交。两个 `.built` 文件仍保留在本地。
+
+### 45.3 最新固件与下一步
+
+最新组合固件仍为：
+
+```text
+artifacts/merge-desktop-camera/20260928-usb-irq-tx/nuttx.bin
+大小：738260 字节
+SHA-256：043e97388b7e2d102437a415c13944d9bc460476f9bf4f802220d24274206ba7
+```
+
+该路径相对 openvela 根目录。此镜像在代码提交前生成，源码修复已纳入 e465751，但不应把镜像内版本字符串宣称为该新提交。构建使用团队根目录 `./build.sh .../configs/desktop_camera -j8` 入口。
+
+用户自行烧录，AI 本轮没有操作板子。旧的 tick 轮询发送版已有两次完整 JPEG 日志证据，但速度约 1.9 KB/s；最新中断唤醒版目前只完成编译和主机测试，尚未取得用户的真机吞吐及连续采集结果。后续聚焦同一组合固件的 JPEG 接收速度、连续多次采集、超时后恢复以及桌面/触摸并行稳定性。mock 输出不代表真实跌倒识别验收。
+
+本第 45 节及顶部交接提示是用户随后要求补充的本地文档记录，尚未纳入 e465751，也未再次提交或推送。
+
+
+## 46. 原生面板按钮控制电脑监控脚本（2026-09-28）
+
+用户要求先实现原生“开始监控”按钮与 fall_watch.py 的控制链路，目前只绑定 JPEG/mock/dry-run，不接入真实 AI 或飞书发送。
+
+实现：板端新增 panel_control 状态邮箱，按钮更新 requested 与 revision；NSH 新增 fgctl query / fgctl ack，PC 在同一个串口连接中轮询并确认。按钮请求存储在内存，传图时不会因日志抑制丢失。每次 ack 携带 revision，旧确认不能覆盖后来的停止操作。板端 UI 只在 LVGL 线程更新，页面切换保留监控请求；卡片显示 PC offline、Waiting for PC、Capturing (mock)、Frame OK (mock)、Capture error / retry 等状态（使用现有字体支持的 ASCII）。PC 联系超时设为 180 秒，以兼容当前长采集及恢复预算。
+
+PC 新增 --panel-control，启动后等待按钮；不加 --once 时，开始/停止控制采集循环；加 --once 时，每个开始请求只采一帧，脚本继续等待下一次停止→开始操作。停止在当前帧结束后生效，不中断 JPEG。仅允许 mock + dry-run；串口连接只由该脚本持有。电脑程序必须预先运行，板子不会自行启动电脑进程。
+
+验证：14 项 PC 单元测试通过，覆盖等待按钮、确认时遇到停止、帧内停止以及单次请求去重；板端实际状态邮箱源文件的主机测试通过（旧 ack 拒绝、停止确认、连接过期）；组合配置根目录 build.sh 编译成功，fgctl 注册与 ELF 符号核对通过，git diff --check 通过。未操作板子，真机按钮控制待用户验证。
+
+归档：`artifacts/merge-desktop-camera/20260928-panel-control/nuttx.bin`（相对 openvela 根目录）。
+大小：739012 字节；SHA-256：`99d5d9ee7fe618bb8521ab39f96f25177c558e107ed0cc3a111e2d53e0fbc99c`。
+
+用户烧录：
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-panel-control/nuttx.bin
+```
+
+先验证每次点击一次采集（脚本保持等待）：
+
+```bash
+cd /home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --once --dry-run --backend mock --capture-timeout 120
+```
+
+循环验证：去掉 --once，加 --interval 10；点击开始进入循环，停止后当前帧完成即不再采集。返回应用中心再进入页面，请求状态应保持。Ctrl+C 结束电脑监听；连接丢失时程序可能报错退出，需用户恢复串口后重新启动，尚未实现自动重连。
+
+本轮实现与本地记录尚未提交或推送；远程 e465751 不含此按钮控制功能。
+
+
+### 46.1 面板控制开放真实识别后端
+
+用户要求按钮触发真实识别。已移除 panel-control 对 mock/dry-run 的限制，允许 direct/proxy，仍禁止与 from-log 合用。PC 按选定后端执行真实脚本；direct 从环境变量 MIMO_API_KEY 取密钥。--dry-run 仅禁止飞书发送，不禁止模型调用。未实际请求模型或发送飞书。
+
+新增 fall 状态回传，页面显示 Monitoring / No fall detected / Fall detected，检测到跌倒时状态转为“疑似跌倒”；模型错误回传 error，不能显示为正常。停止仍在本轮采集/识别结束后生效。16 项主机测试通过，其中 direct API 使用模拟 HTTP 响应验证 JPEG 请求及跌倒结果回传。组合固件编译成功，真机按钮、模型请求与告警尚待验证。
+
+固件：artifacts/merge-desktop-camera/20260928-panel-direct/nuttx.bin
+大小：739056；SHA-256：d44f6a3ce08888354eeeca4e225acdaa0183fdde101e3aef1049d90b443bdfef。
+
+启动真实识别、暂不发飞书：
+
+```bash
+tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120
+```
+
+运行前在用户终端配置 MIMO_API_KEY。需要飞书告警时配置 FEISHU_WEBHOOK_URL 并去掉 --dry-run；密钥和 webhook 不写进源码。电脑需要保持运行，板子按钮不会自行启动电脑上的进程。此更新未提交/推送。
