@@ -101,6 +101,10 @@ static int  esp_ioctl(struct file *filep, int cmd, unsigned long arg);
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+static bool g_tx_stalled;
+#endif
+
 static char g_rxbuffer[ESP_USBCDC_BUFFERSIZE];
 static char g_txbuffer[ESP_USBCDC_BUFFERSIZE];
 
@@ -229,8 +233,16 @@ static void esp_txint(struct uart_dev_s *dev, bool enable)
 
   if (enable)
     {
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+      /* Drain the software queue even without a host reader. esp_send()
+       * bounds the hardware wait; a disconnected console may lose output.
+       */
+
+      uart_xmitchars(dev);
+#else
       usb_serial_jtag_ll_ena_intr_mask(
         USB_SERIAL_JTAG_INTR_SERIAL_IN_EMPTY);
+#endif
     }
   else
     {
@@ -364,7 +376,11 @@ static bool esp_rxavailable(struct uart_dev_s *dev)
 
 static bool esp_txready(struct uart_dev_s *dev)
 {
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+  return true; /* esp_send handles the bounded hardware wait. */
+#else
   return (bool)usb_serial_jtag_ll_txfifo_writable();
+#endif
 }
 
 /****************************************************************************
@@ -382,6 +398,24 @@ static void esp_send(struct uart_dev_s *dev, int ch)
   uint8_t buf[1] = {
     (uint8_t)ch
   };
+
+#ifdef CONFIG_ESP32P4_USB_CONSOLE_BEST_EFFORT
+  unsigned int waited = 0;
+
+  while (!usb_serial_jtag_ll_txfifo_writable())
+    {
+      if (g_tx_stalled || waited >= 100)
+        {
+          g_tx_stalled = true;
+          return;
+        }
+
+      up_udelay(10);
+      waited++;
+    }
+
+  g_tx_stalled = false;
+#endif
 
   usb_serial_jtag_ll_write_txfifo(buf, sizeof(buf));
 

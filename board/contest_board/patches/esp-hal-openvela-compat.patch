@@ -1,5 +1,5 @@
 diff --git a/components/upper_hal_dma/src/dw_gdma.c b/components/upper_hal_dma/src/dw_gdma.c
-index d1304e160fa..8366a0a3e47 100644
+index d1304e160fa..4e50322dc6e 100644
 --- a/components/upper_hal_dma/src/dw_gdma.c
 +++ b/components/upper_hal_dma/src/dw_gdma.c
 @@ -15,8 +15,8 @@
@@ -33,6 +33,45 @@ index d1304e160fa..8366a0a3e47 100644
  ESP_LOG_ATTR_TAG(TAG, "dw-gdma");
  
  #if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
+@@ -208,7 +221,7 @@ static esp_err_t channel_destroy(dw_gdma_channel_t *chan)
+         channel_unregister_from_group(chan);
+     }
+     if (chan->intr) {
+-        esp_intr_free(chan->intr);
++        esp_os_intr_free(chan->intr);
+     }
+     free(chan);
+     return ESP_OK;
+@@ -635,7 +648,7 @@ static esp_err_t dw_gdma_install_channel_interrupt(dw_gdma_channel_t *chan)
+     } else {
+         isr_flags |= DW_GDMA_ALLOW_INTR_PRIORITY_MASK;
+     }
+-    ret = esp_intr_alloc_intrstatus(ETS_DW_GDMA_INTR_SOURCE, isr_flags,
++    ret = esp_os_intr_alloc_intrstatus(ETS_DW_GDMA_INTR_SOURCE, isr_flags,
+                                     (uint32_t)dw_gdma_ll_get_intr_status_reg(hal->dev), DW_GDMA_LL_CHANNEL_EVENT_MASK(chan_id),
+                                     dw_gdma_channel_default_isr, chan, &intr);
+     ESP_RETURN_ON_ERROR(ret, TAG, "alloc interrupt failed");
+diff --git a/nuttx/include/platform/os.h b/nuttx/include/platform/os.h
+index 118b35570f4..0bdd9c9a307 100644
+--- a/nuttx/include/platform/os.h
++++ b/nuttx/include/platform/os.h
+@@ -21,6 +21,7 @@
+ #include <semaphore.h>
+ #include <nuttx/clock.h>
+ #include <nuttx/sched.h>
++#include <nuttx/signal.h>
+ #include <nuttx/init.h>
+ #include <sched/sched.h>
+ 
+@@ -354,7 +355,7 @@ static inline void esp_os_task_delay_adapter(uint32_t ticks)
+   if (OSINIT_OS_READY())
+     {
+       useconds_t us = TICK2USEC(ticks);
+-      nxsched_usleep(us);
++      nxsig_usleep(us);
+     }
+ }
+ 
 diff --git a/nuttx/src/platform/os.c b/nuttx/src/platform/os.c
 index 99470d7e7c0..0d57e46bd48 100644
 --- a/nuttx/src/platform/os.c
