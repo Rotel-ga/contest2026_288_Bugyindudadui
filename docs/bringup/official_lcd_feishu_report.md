@@ -2,7 +2,7 @@
 
 ## 0. 交给其他 AI：先看这里，编译 / 烧录 / 验证
 
-**2026-09-28 当前交接入口：**最新照片预览实现见第 47 节；手动启动及取消后台 service 的使用方式见第 46.6 节。当前分支 `merge/esp32p4-desktop-camera`，最新本地预览代码已编译，尚未提交/推送或真机验收。预览涉及板端变更，需要用户烧录第 47 节新固件。此前“无需重烧”仅针对主机 service 回退。
+**2026-09-28 当前交接入口：**两个原生应用的实际操作步骤、命令、切换和排障统一见第 51 节。最新组合固件为 photo-ai-fontfix（第 50.1 节），识物脚本已修复握手诊断和生成额度（第 50.2～50.3 节）；默认额度 4096。保留手动运行方式，不使用后台 service。
 
 本节命令针对当前机器，使用 **Bash** 执行。工作区是 `/home/mi/Developer/openvela`，比赛 Git 仓库是其下的 `contest2026_288_Bugyindudadui`，不要在工作区根目录执行该项目的 Git 操作。
 
@@ -2916,3 +2916,235 @@ PC 端成功校验的原始 JPEG 仍保存于 `out/monitor/frames/`，最新为 
 若要先验证显示而不调用真实模型，可在相同命令中把 `--backend direct` 改为 `--backend mock` 并保留 `--dry-run`；这不改变板端预览路径。
 
 本次只更新本地文档，没有再次改代码、编译、烧录、提交或推送。
+
+
+## 48. 第二个原生应用：拍照识物 UI（2026-09-28）
+
+按用户要求新增 `app/photo_identify/`，应用中心增加“拍照识物”入口，与跌倒监护并列。复用桌面 UI 风格：左侧 590×300 图片框，右侧 293×300 可滚动识别提示框，底部“拍照识别”按钮和返回应用中心导航。
+
+本阶段按钮写死为固定演示响应，点击后显示“已点击拍照识别”及尚未接入拍照/PC AI 的提示，不执行监控脚本、不调用模型、不显示虚构识别结果。图片区域为等待拍照占位。文本预留 `photo_identify_set_message()` 线程安全接口，桌面主循环更新控件，超长提示拒绝并保留旧内容，页面删除清空控件引用。尚无 PC 传输协议。固定文字已加入 Noto CJK 字体子集；未来任意中文回传需要另行扩充字库。
+
+验证：通过团队根目录 build.sh desktop_camera 增量构建与链接，ELF 包含 photo_identify_event/poll/set_message，git diff --check 通过；未烧录，布局、点击及滚动待用户真机验收。
+
+固件：`artifacts/merge-desktop-camera/20260928-photo-identify-ui/nuttx.bin`
+大小：807748 字节；SHA-256：`ad6e42cef2b885d1d9facb2aadc33da23020431a15b62a274a5d1b26ab07c54c`。
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-photo-identify-ui/nuttx.bin
+```
+
+烧录前退出监控并关闭串口终端。烧录后打开应用中心→拍照识物，检查图片占位、识别提示、按钮固定响应、提示区滚动与返回导航；该页测试无需运行 PC 脚本。当前实现和本地文档未提交/推送。
+
+
+## 49. 拍照识物本地视频预览（2026-09-28）
+
+用户要求“等待拍照”框显示实时画面。本地实现页面进入启动 camera_live 后台任务，持续初始化一次的 CSI/ISP 采集；页面退出请求停止并释放，不强制删除任务。480×270 图片居中，发布间隔至少 200 ms，目标约 5 FPS，非实测帧率。
+
+三块 1280×720 RGB565 采集缓冲分别保护 DMA、最新完成帧和 CPU 读取；回调顺序按官方驱动 get-new-before-done 实现，缩放/缓存同步在任务执行，CPU 读取帧期间 DMA 不覆盖，丢弃过期帧。预览不编码 JPEG、不经串口或 PC；固定 ISP 白平衡，传感器仍沿用 1280×720 时序。照片识别按钮仍固定提示，未调用识物 AI。
+
+资源：原始三帧约 5.27 MiB，交换与显示缓冲约 506 KiB，另有现有桌面和跌倒监护缓冲。连续 CSI 和 DSI 共享带宽尚待真机确认。预览启动检查跌倒监护 requested 状态，采集函数同锁防止并发；退出后短暂清理期重进可能返回忙，需稍后重进。停止/删除失败保留硬件所有内存并设置故障状态，要求复位。
+
+验证：组合配置团队根目录 build.sh 增量编译生成 nuttx.bin；主机模拟实际回调 10000 次完成，慢速读取者受保护、仅保留最新帧、缓冲有界；已有缩放测试和 16 项监控测试通过。未执行烧录、未确认真机视频，存在既有 HAL 宏告警。无新增官方 HAL 文件修改。
+
+固件：artifacts/merge-desktop-camera/20260928-photo-live/nuttx.bin
+大小：809816 字节；SHA-256：d2fdfa5dcc14cf8cb7e7e1169fa33c63668ce64484b19cafa451278e8a1b668b。
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-photo-live/nuttx.bin
+```
+
+验收：先停止跌倒监护和 PC 脚本；烧录后进入应用中心→拍照识物，不启动电脑脚本，等待初始化后查看 Live #计数和移动画面。检查比例/方向/颜色/撕裂、触摸与返回；连续运行至少 5 分钟，反复退出进入，最后回到跌倒监护确认单帧采集恢复。串口可查看 CAMERA LIVE stopped ret=0 及 free；开始新监控前关闭串口终端。代码与文档尚未提交/推送。
+
+
+## 50. 拍照识物当前帧上传与 AI 文本回传（2026-09-28）
+
+用户要求拍照识别按钮取当前画面，上传 PC AI 并回传提示，保留原跌倒识别。新增独立 `tools/photo_identify/identify_watch.py`，物品识别提示词独立，不改 fall_watch.py 或 ai_client.py 的跌倒判断。仅复用现有 HTTP 与串口辅助函数。
+
+板端按钮复制当前显示的 480×270 RGB565 图（259200 字节），分配唯一请求编号并冻结屏幕预览，后台相机继续运行。新增 pictl query/frame/result 命令：图片带头尾编号、长度和 sum32；UTF-8 结果以最多 12 字节/命令的 hex 小块传送，整段长度/偏移/checksum/UTF-8 校验通过后更新文本。只允许一个待处理请求，180 秒超时，切页取消，过期回复拒绝，UI 不等待 USB 发送锁。
+
+PC PNG 保存到 `out/photo_identify/frames/` 和 latest.png；模型结果及串口日志单独保存。direct 使用 MIMO_API_KEY，不需要飞书配置、不发送告警。支持 mock 链路测试。共享 BoardConsole 新增 flock 协作锁，第二个监控/识物进程在更改串口参数之前被拒绝；其他终端仍需手动关闭。两个应用不能同时使用摄像头，切换前停止跌倒监控并退出其脚本。
+
+字库扩充为 7541 个字形（GB2312 与 UI 字符），支持常用中文结果；罕见字/表情不保证覆盖。照片为当前屏幕缩小帧，不宣称上传全分辨率原图。
+
+验证：组合编译成功且 fgctl/pictl 同时注册；4 项 PC 识物测试、16 项原监控测试通过；板端快照/过期请求/分块/UTF-8/取消/超时测试及 10000 次视频缓冲测试通过。模型网络请求仅用模拟响应测试，未真实调用或烧录。本轮原跌倒功能无逻辑改动，但两应用切换仍待真机回归。
+
+固件：artifacts/merge-desktop-camera/20260928-photo-ai/nuttx.bin
+大小：2843376 字节，SHA-256：40cc5c9b97b487855432269a3ecdd59cc2ccb470b88e7a768f84c3e07400f4f5。已确认未侵入 0xf80000 设置分区。
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-photo-ai/nuttx.bin
+```
+
+运行识物：
+
+```bash
+cd /home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+python3 tools/photo_identify/identify_watch.py --port /dev/ttyACM0 --backend direct
+```
+
+需在用户终端配置 MIMO_API_KEY；不要向聊天或代码填入密钥。进入拍照识物页面等 Live 图像后点击拍照识别，验证锁定画面、PC 保存图片、真实文字回传、滚动和恢复预览。退出识物脚本后仍可运行原 fall_watch.py。当前所有新增功能与文档未提交/推送。
+
+
+### 50.1 修复扩充字库导致桌面乱码（2026-09-28）
+
+用户照片确认多个页面共享文字字形错乱。根因：此前字库位图约 2080986 字节，而当前 LV_FONT_FMT_TXT_LARGE=0 的 bitmap_index 只有 20 位；超过 1 MiB 的位图索引被截断。旧 photo-ai-build.log 中已有 -Woverflow 警告，之前只确认编译成功而遗漏该告警，不能将之前字体编译成功视为正确显示。
+
+修复生成器，将 7541 个字形拆为 4 个不超过 512 KiB 的字体块，使用 LVGL fallback 链连接，保留全局字体 ABI，不更改相机与识别链路。字形范围检查和生成断言已添加。实际测试核对全部索引范围、fallback 链，以及标题/按钮/提示/常用物品字形位图与 Noto 渲染一致。新组合编译成功，无 -Woverflow；尚未真机验证，需重新烧录。
+
+新固件：artifacts/merge-desktop-camera/20260928-photo-ai-fontfix/nuttx.bin
+大小：2843388；SHA-256：03b80b70b18675fe090fde5a43f42d099efd7f923b93a4c0153e2954f89189c2。
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-photo-ai-fontfix/nuttx.bin
+```
+
+先退出串口脚本再烧录；检查锁屏、桌面、两个应用标题和提示文字，再运行独立识物脚本验证 AI 中文回传。此次修复未提交/推送。
+
+### 50.2 识物脚本首次查询握手超时诊断
+
+用户报告启动后立即显示就绪，随后 8 秒 NSH 握手超时；当时日志未覆盖状态查询，不能确认板子卡死或命令丢字。修复主机脚本：首次 pictl q 成功后才显示就绪；默认查询预算改为 30 秒，可用 --command-timeout 设置；整个会话从首次 sync 开始实时保存至 out/photo_identify/logs/*.session.serial.log。识物专用启用慢速 echo 握手，原跌倒监控默认发送逻辑不变。保留采图 120 秒独立预算，不自动复位板子。
+
+原监控 16 项测试及识物 5 项测试通过，主机脚本语法检查通过。此次不改固件、不需要重烧；真实失败原因仍需新的完整会话日志确认。
+
+### 50.3 修复识物模型额度写死 512
+
+用户实测完成握手、当前帧读取、PNG 保存，direct 返回空内容且 finish_reason=length。独立脚本原先写死 max_completion_tokens=512，却复用提示调整 MIMO_MAX_COMPLETION_TOKENS，提示与实际配置不符。
+
+本轮只改识物脚本：新增 --max-completion-tokens，默认 4096，传给模型请求；length 响应（即使带部分正文）拒绝作为完整识别结果，错误提示包含预算及使用量，不自动调用重试。不改变跌倒识别预算、固件或板端协议。识物 6 项测试与原监控 16 项测试通过。无需重烧，重启识物脚本并重新点击按钮即可；真实额度足够与否须实测。
+
+
+## 51. 两个原生应用使用手册（2026-09-28）
+
+### 51.1 共用准备
+
+两个入口均在“桌面 → 应用中心”。当前采用电脑终端手动运行脚本，不使用后台 service；电脑负责调用 AI，板子负责显示、触摸及摄像头。仅拍照识物的视频预览不依赖电脑脚本。
+
+使用包含两个应用和字体修复的组合镜像：
+
+```text
+/home/mi/Developer/openvela/artifacts/merge-desktop-camera/20260928-photo-ai-fontfix/nuttx.bin
+SHA-256: 03b80b70b18675fe090fde5a43f42d099efd7f923b93a4c0153e2954f89189c2
+```
+
+如果已烧录此镜像，后续握手、日志及模型额度的 Python 修改不需要重烧。较早 photo-ai 镜像存在字库索引溢出问题，不作为当前推荐镜像。
+
+所有以下脚本命令在比赛仓库执行：
+
+```bash
+cd /home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+```
+
+真实识别需要当前终端具有 `MIMO_API_KEY`。若此前已在本机可信配置文件 `~/.config/fall-monitor/environment` 保存凭据，可加载：
+
+```bash
+set -a
+source ~/.config/fall-monitor/environment
+set +a
+```
+
+该操作仅加载环境变量，不启动 service。也可自行在终端设置环境变量；不要将密钥写入仓库或日志。检查串口可用 `python3 -m serial.tools.list_ports -v`，编号变化时修改 --port。关闭其他串口终端，同一时间只运行一个应用脚本。
+
+### 51.2 应用一：跌倒监护
+
+用途：按钮控制周期拍照，电脑执行跌倒判断，结果回传状态；图片框按每次成功采集更新照片，不是连续视频。
+
+1. 若当前处于拍照识物页面，先返回应用中心，等待摄像头释放，并退出识物脚本。
+2. 打开板端“跌倒监护”，在电脑执行：
+
+```bash
+python3 tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120
+```
+
+3. 等待脚本面板控制就绪，点击板端“开始监控”。每轮更新照片并执行真实识别。
+4. 点击“停止监控”，当前轮完成后停止后续采集。最后照片保留；脚本继续等待下一次开始。
+5. 不再使用时在终端 Ctrl+C 退出。不要只关闭脚本而让板端按钮保持开始状态，否则拍照识物可能提示摄像头不可用。
+
+参数：`--panel-control` 表示等待按钮；`--jpeg` 传输 JPEG；`--backend direct` 真正调用模型；`--dry-run` 只禁止飞书告警，不禁止模型调用；`--interval 10` 为目标间隔，若单轮超过 10 秒不会并发堆积。需要 15 秒时改成 --interval 15。
+
+需要飞书告警时，先配置 FEISHU_WEBHOOK_URL，再去掉 --dry-run，其他参数不变。测试链路而不调用模型时改成 --backend mock 并保留 --dry-run。mock 结果不能作为真实识别结论。
+
+输出（相对比赛仓库）：
+
+- `out/monitor/frames/`：每次成功校验的 JPEG。
+- `out/monitor/latest.jpg`：最新 JPEG。
+- `out/monitor/logs/`：串口采集日志。
+- `out/monitor/events.jsonl`：识别及告警事件。
+
+### 51.3 应用二：拍照识物
+
+用途：页面显示本地视频，点击“拍照识别”锁定当前显示帧，电脑分析物品并将中文提示送回右侧文本框。不发送飞书告警，不使用跌倒识别提示词。
+
+1. 在跌倒监护中点击停止，等待当前轮完成，再 Ctrl+C 退出监控脚本。
+2. 在板子打开“应用中心 → 拍照识物”，等待 Live #计数与实时画面。仅查看视频无需电脑脚本。
+3. 在电脑运行独立识物脚本：
+
+```bash
+python3 tools/photo_identify/identify_watch.py --port /dev/ttyACM0 --backend direct --command-timeout 30 --capture-timeout 120 --max-completion-tokens 4096
+```
+
+4. 等待 NSH/pictl 握手成功及“拍照识物已就绪”。把物品放入画面，点击“拍照识别”。
+5. 当前屏幕 480×270 帧被锁定；PC 读取、校验并保存 PNG，随后调用模型。等待期间不要重复点击。
+6. 完整文字回传后，右侧“识别提示”更新，可以上下滚动查看，视频恢复。继续识别时再次点击按钮。
+7. 返回应用中心会请求停止视频并取消未完成请求；退出识物脚本用 Ctrl+C。快速退出重进时需等待原摄像头任务释放。
+
+这里分析的是按钮点击时屏幕正在显示的 480×270 帧，不是重新拍摄的另一张，也不是 1280×720 原始帧。模型文本按请求编号回传，切页后过期结果不会覆盖新请求。常用中文已支持，罕见字和表情不保证有字形。
+
+不调用真实模型的传图/回传测试：
+
+```bash
+python3 tools/photo_identify/identify_watch.py --port /dev/ttyACM0 --backend mock
+```
+
+输出（相对比赛仓库）：
+
+- `out/photo_identify/frames/`：按钮锁定帧的 PNG。
+- `out/photo_identify/latest.png`：最新 PNG。
+- `out/photo_identify/logs/*.session.serial.log`：从首次握手开始的完整串口会话。
+- `out/photo_identify/logs/*.serial.log`：已返回的单次图像传输内容。
+- `out/photo_identify/logs/*.json`：已成功识别并回传的结果记录。
+
+图片在调用模型之前保存；模型失败不删除已接收图片。
+
+### 51.4 两个应用切换
+
+| 从哪里切换 | 板上操作 | 电脑操作 |
+| --- | --- | --- |
+| 跌倒监护 → 拍照识物 | 点击停止，等本轮结束，返回应用中心再进拍照识物 | Ctrl+C 退出 fall_watch，再启动 identify_watch |
+| 拍照识物 → 跌倒监护 | 返回应用中心，等摄像头释放，再进跌倒监护 | Ctrl+C 退出 identify_watch，再启动 fall_watch，点击开始 |
+
+两个脚本共享 USB 串口，不能同时运行。两个应用也共享摄像头，不能同时进行实时预览与独立监控采集。当前不会自动在电脑上切换脚本，不安装后台服务。
+
+### 51.5 常见问题
+
+| 现象 | 操作 |
+| --- | --- |
+| 提示缺少 MIMO_API_KEY | 在当前终端加载/设置密钥，再运行；不需要烧录 |
+| 提示串口被占用 | 退出另一脚本和其他串口终端；不要同时重复启动 |
+| Camera unavailable | 先停止跌倒监控，等待旧视频任务释放，返回后重进 |
+| Waiting/Starting camera | 初始化可能需要数秒；观察 Live 计数与触摸是否继续响应 |
+| NSH 握手超时 | 查看新生成的 session.serial.log，记录收到字节数和板子响应；不要仅据此断言缺固件或改写驱动 |
+| 照片已保存但 finish_reason=length | 重启识物脚本，将 --max-completion-tokens 改为 8192 后重新点击；不改跌倒识别额度，不需烧录 |
+| 识物框保持锁定画面 | 正在等待 PC 或模型回复；确认独立脚本运行。请求有 180 秒板端超时，退出页面可取消 |
+| 整个桌面中文字形错误 | 使用第 50.1 节的字体分块修复镜像；不能只重启 Python |
+
+### 51.6 当前证据边界
+
+跌倒监护已有真实模型响应日志；照片预览与识物页面已有用户照片。识物最新现场已完成 NSH/pictl、当前帧读取和 PNG 保存，但模型先前在 512 额度下返回 length；现已将独立额度改为 4096，并完成主机测试，尚未收到新额度下中文结果完整显示的用户确认。字体分块修复已编译并通过字形检查，最终板上字体和两应用连续运行稳定性仍需用户验收。
+
+本节为本次本地使用说明更新，未编译、未烧录、未提交或推送。

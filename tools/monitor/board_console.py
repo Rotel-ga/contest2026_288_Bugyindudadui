@@ -10,6 +10,7 @@ can drive the same console in a loop.
 """
 
 import os
+import fcntl
 import re
 import select
 import subprocess
@@ -68,6 +69,7 @@ class BoardConsole:
         self._fd = None
         self.trace = None
         self.progress = None
+        self.pace_handshake = False
 
     def __enter__(self):
         self.open()
@@ -79,6 +81,11 @@ class BoardConsole:
 
     def open(self):
         fd = os.open(self.port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(fd)
+            raise BoardBusy("串口正在被另一个监控/识物脚本占用，请先退出它")
         attr = termios.tcgetattr(fd)
         attr[0] = 0                                    # iflag
         attr[1] = 0                                    # oflag
@@ -166,7 +173,23 @@ class BoardConsole:
         if self.progress:
             self.progress("等待 NSH 握手回应")
         anchor = b"\n@@" + os.urandom(4).hex().encode()
-        os.write(self._fd, b"\necho " + anchor[1:] + b"\n")
+        handshake = b"\necho " + anchor[1:] + b"\n"
+        if self.pace_handshake:
+            # Opt-in for the independent object listener. Pace the handshake
+            # too, and handle nonblocking short writes before waiting for it.
+            for byte in handshake:
+                while True:
+                    try:
+                        if os.write(self._fd, bytes([byte])) == 1:
+                            break
+                    except BlockingIOError:
+                        pass
+                    if time.time() >= end:
+                        raise BoardBusy("发送 NSH 握手超时")
+                    select.select([], [self._fd], [], 0.01)
+                time.sleep(0.005)
+        else:
+            os.write(self._fd, handshake)
         buf = self._read_until(b"", lambda b: anchor in b, end)
         at = buf.find(anchor)
         if at < 0:
