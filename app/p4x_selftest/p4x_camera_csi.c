@@ -9,6 +9,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdatomic.h>
+#include <sched.h>
+#include <nuttx/irq.h>
+#include <nuttx/clock.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +26,7 @@
 #include "esp_cam_ctlr.h"
 #include "esp_cam_ctlr_csi.h"
 #include "esp_heap_caps.h"
+#include "esp_cache.h"
 #include "esp_ldo_regulator.h"
 #include "driver/isp.h"
 #include "esp_private/esp_cache_private.h"
@@ -37,6 +42,7 @@
 #  include "../fallguard/camera_preview.h"
 #endif
 #include "p4x_camera_capture.h"
+#include "camera_live.h"
 
 #define SC2336_ADDR        0x30
 #define SC2336_SDA        7
@@ -678,6 +684,110 @@ struct csi_capture_s
   volatile uint32_t done_calls;
 };
 
+#ifdef CONFIG_ESP32P4_DESKTOP
+/* get-buffer runs before the previous transfer's done callback. Three slots
+ * leave a free destination even while one completed frame is being scaled.
+ */
+enum live_slot_state { LIVE_FREE, LIVE_DMA, LIVE_READY, LIVE_READING };
+static void *g_live_frames[3];
+static enum live_slot_state g_live_slots[3];
+static atomic_bool g_live_stop;
+static atomic_bool g_camera_fault;
+static mutex_t g_live_lock = NXMUTEX_INITIALIZER;
+static mutex_t g_live_preview_lock = NXMUTEX_INITIALIZER;
+static bool g_live_running;
+static int g_live_result;
+static uint16_t *g_live_preview;
+static uint32_t g_live_sequence;
+static unsigned int g_live_completed;
+
+static bool live_get_buffer(esp_cam_ctlr_handle_t handle,
+                            esp_cam_ctlr_trans_t *trans, void *arg)
+{
+  irqstate_t flags = enter_critical_section();
+  (void)handle;
+  (void)arg;
+  for (int i = 0; i < 3; i++)
+    {
+      if (g_live_slots[i] == LIVE_FREE || g_live_slots[i] == LIVE_READY)
+        {
+          g_live_slots[i] = LIVE_DMA;
+          trans->buffer = g_live_frames[i];
+          trans->buflen = SC2336_FRAME_SIZE;
+          break;
+        }
+    }
+  leave_critical_section(flags);
+  return false;
+}
+
+static bool live_frame_done(esp_cam_ctlr_handle_t handle,
+                            esp_cam_ctlr_trans_t *trans, void *arg)
+{
+  irqstate_t flags = enter_critical_section();
+  (void)handle;
+  (void)arg;
+  g_live_completed++;
+  for (int i = 0; i < 3; i++)
+    {
+      if (g_live_slots[i] == LIVE_READY) g_live_slots[i] = LIVE_FREE;
+    }
+  for (int i = 0; i < 3; i++)
+    {
+      if (trans->buffer == g_live_frames[i])
+        g_live_slots[i] = g_live_completed >= SC2336_SKIP_FRAMES ?
+                          LIVE_READY : LIVE_FREE;
+    }
+  leave_critical_section(flags);
+  return false;
+}
+
+static int live_stream_loop(void)
+{
+  clock_t last_frame = clock_systime_ticks();
+  clock_t next_preview = last_frame;
+  unsigned int seen = 0;
+  while (!atomic_load(&g_live_stop))
+    {
+      int slot = -1;
+      clock_t now = clock_systime_ticks();
+      irqstate_t flags = enter_critical_section();
+      if (seen != g_live_completed)
+        {
+          seen = g_live_completed;
+          last_frame = now;
+        }
+      if ((int32_t)(now - next_preview) >= 0)
+        for (int i = 0; i < 3; i++)
+          if (g_live_slots[i] == LIVE_READY)
+            {
+              slot = i;
+              g_live_slots[i] = LIVE_READING;
+              break;
+            }
+      leave_critical_section(flags);
+      if (slot >= 0)
+        {
+          int ret = esp_cache_msync(g_live_frames[slot], SC2336_FRAME_SIZE,
+                                     ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+          if (ret != ESP_OK) return -EIO;
+          nxmutex_lock(&g_live_preview_lock);
+          camera_preview_resize(g_live_preview, g_live_frames[slot],
+                                SC2336_WIDTH, SC2336_HEIGHT, NULL);
+          if (++g_live_sequence == 0) g_live_sequence = 1;
+          nxmutex_unlock(&g_live_preview_lock);
+          flags = enter_critical_section();
+          g_live_slots[slot] = LIVE_FREE;
+          leave_critical_section(flags);
+          next_preview = clock_systime_ticks() + MSEC2TICK(200);
+        }
+      if (now - last_frame > MSEC2TICK(3000)) return -ETIMEDOUT;
+      usleep(10000);
+    }
+  return 0;
+}
+#endif
+
 static bool csi_get_buffer(esp_cam_ctlr_handle_t handle,
                            esp_cam_ctlr_trans_t *trans, void *arg)
 {
@@ -1209,7 +1319,7 @@ static int jpeg_selftest_once(void)
   return g_frame_error;
 }
 
-static int camera_capture_once(const char *output, const int *gain)
+static int camera_capture_once(const char *output, const int *gain, bool live)
 {
   esp_cam_ctlr_handle_t camera = NULL;
   static struct csi_capture_s capture;
@@ -1252,9 +1362,18 @@ static int camera_capture_once(const char *output, const int *gain)
   ret = sc2336_init(gain);
   if (ret < 0)
     {
+      sc2336_stream_off();
       esp_ldo_release_channel(phy_ldo);
       return ret;
     }
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (live && atomic_load(&g_live_stop))
+    {
+      sc2336_stream_off();
+      esp_ldo_release_channel(phy_ldo);
+      return 0;
+    }
+#endif
 
   /* Ask the cache layer for the required DMA alignment instead of assuming
    * 64 bytes.  The frame buffer lives in PSRAM and the ISP writes into it via
@@ -1292,6 +1411,28 @@ static int camera_capture_once(const char *output, const int *gain)
       return -ENOMEM;
     }
 
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (live)
+    {
+      g_live_frames[0] = frame;
+      g_live_completed = 0;
+      for (int i = 0; i < 3; i++) g_live_slots[i] = LIVE_FREE;
+      for (int i = 1; i < 3; i++)
+        {
+          g_live_frames[i] = heap_caps_aligned_calloc(frame_align, 1,
+            SC2336_FRAME_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+          if (!g_live_frames[i])
+            {
+              for (int j = 0; j < i; j++) free(g_live_frames[j]);
+              memset(g_live_frames, 0, sizeof(g_live_frames));
+              sc2336_stream_off();
+              esp_ldo_release_channel(phy_ldo);
+              return -ENOMEM;
+            }
+        }
+    }
+#endif
+
   config = (esp_cam_ctlr_csi_config_t){
     .ctlr_id = 0,
     .h_res = SC2336_WIDTH,
@@ -1301,11 +1442,15 @@ static int camera_capture_once(const char *output, const int *gain)
     .input_data_color_type = CAM_CTLR_COLOR_RAW8,
     .output_data_color_type = CAM_CTLR_COLOR_RAW8,
     .queue_items = 1,
+    .bk_buffer_dis = live,
   };
 
   if (esp_cam_new_csi_ctlr(&config, &camera) != ESP_OK)
     {
       sc2336_stream_off();
+#ifdef CONFIG_ESP32P4_DESKTOP
+      if (live) for (int i = 1; i < 3; i++) free(g_live_frames[i]);
+#endif
       free(frame);
       esp_ldo_release_channel(phy_ldo);
       return -ENODEV;
@@ -1324,6 +1469,14 @@ static int camera_capture_once(const char *output, const int *gain)
     .buffer = frame,
     .buflen = SC2336_FRAME_SIZE,
   };
+
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (live)
+    {
+      callbacks.on_get_new_trans = live_get_buffer;
+      callbacks.on_trans_finished = live_frame_done;
+    }
+#endif
 
   /* Report每 stage 的返回值，否则链式 if 会把失败点藏起来。 */
 
@@ -1440,13 +1593,17 @@ static int camera_capture_once(const char *output, const int *gain)
       printf("camera_capture: stage start        ret=%d\n", ret);
     }
 
-  if (ret == ESP_OK)
+  if (ret == ESP_OK && !live)
     {
       ret = esp_cam_ctlr_receive(camera, &transaction, 5000);
       printf("camera_capture: stage receive      ret=%d\n", ret);
     }
 
-  if (ret == ESP_OK)
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (ret == ESP_OK && live) ret = live_stream_loop();
+#endif
+
+  if (ret == ESP_OK && !live)
     {
       /* Wait for the requested warm-up frames while the desktop keeps
        * running.  The ISR only publishes counters and the completion flag.
@@ -1495,7 +1652,7 @@ static int camera_capture_once(const char *output, const int *gain)
       usleep(20000);
     }
 
-  if (ret == 0 && capture.finished)
+  if (!live && ret == 0 && capture.finished)
     {
       csi_report_stats(frame);
 
@@ -1527,7 +1684,7 @@ static int camera_capture_once(const char *output, const int *gain)
         }
     }
 
-  if (ret == 0 && capture.finished && output != NULL)
+  if (!live && ret == 0 && capture.finished && output != NULL)
     {
       fd = open(output, O_WRONLY | O_CREAT | O_TRUNC, 0666);
       if (fd < 0)
@@ -1563,6 +1720,9 @@ static int camera_capture_once(const char *output, const int *gain)
           if (esp_cam_ctlr_stop(camera) != ESP_OK)
             {
               sc2336_stream_off();
+#ifdef CONFIG_ESP32P4_DESKTOP
+              atomic_store(&g_camera_fault, true);
+#endif
               printf("camera_capture: stop failed; reset required\n");
               return -EIO;
             }
@@ -1573,7 +1733,16 @@ static int camera_capture_once(const char *output, const int *gain)
           esp_cam_ctlr_disable(camera);
         }
 
-      esp_cam_ctlr_del(camera);
+      int del_ret = esp_cam_ctlr_del(camera);
+      if (del_ret != ESP_OK)
+        {
+          sc2336_stream_off();
+#ifdef CONFIG_ESP32P4_DESKTOP
+          atomic_store(&g_camera_fault, true);
+#endif
+          printf("camera_capture: delete failed ret=%d; reset required\n", del_ret);
+          return -EIO;
+        }
     }
 
   sc2336_stream_off();
@@ -1586,6 +1755,13 @@ static int camera_capture_once(const char *output, const int *gain)
         }
       esp_isp_del_processor(isp_proc);
     }
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (live)
+    {
+      for (int i = 1; i < 3; i++) free(g_live_frames[i]);
+      memset(g_live_frames, 0, sizeof(g_live_frames));
+    }
+#endif
   free(frame);
   esp_ldo_release_channel(phy_ldo);
   return ret;
@@ -1600,7 +1776,14 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
       return ret;
     }
 
-  ret = camera_capture_once(output, gain);
+#ifdef CONFIG_ESP32P4_DESKTOP
+  if (atomic_load(&g_camera_fault))
+    {
+      nxmutex_unlock(&g_capture_lock);
+      return -EIO;
+    }
+#endif
+  ret = camera_capture_once(output, gain, false);
   nxmutex_unlock(&g_capture_lock);
   return ret;
 }
@@ -1617,3 +1800,83 @@ int p4x_jpeg_selftest(void)
   nxmutex_unlock(&g_capture_lock);
   return ret;
 }
+
+#ifdef CONFIG_ESP32P4_DESKTOP
+static int live_worker(int argc, char **argv)
+{
+  int ret = nxmutex_trylock(&g_capture_lock);
+  (void)argc;
+  (void)argv;
+  if (ret >= 0)
+    {
+      if (!atomic_load(&g_live_stop)) ret = camera_capture_once(NULL, NULL, true);
+      nxmutex_unlock(&g_capture_lock);
+    }
+  nxmutex_lock(&g_live_preview_lock);
+  free(g_live_preview);
+  g_live_preview = NULL;
+  nxmutex_unlock(&g_live_preview_lock);
+  nxmutex_lock(&g_live_lock);
+  g_live_result = ret > 0 ? -EIO : ret;
+  g_live_running = false;
+  nxmutex_unlock(&g_live_lock);
+  printf("CAMERA LIVE stopped ret=%d\n", ret);
+  return 0;
+}
+
+int camera_live_start(void)
+{
+  int pid;
+  nxmutex_lock(&g_live_lock);
+  if (g_live_running || atomic_load(&g_camera_fault))
+    {
+      nxmutex_unlock(&g_live_lock);
+      return -EBUSY;
+    }
+  g_live_preview = malloc(CAMERA_PREVIEW_BYTES);
+  if (!g_live_preview)
+    {
+      nxmutex_unlock(&g_live_lock);
+      return -ENOMEM;
+    }
+  g_live_sequence = 0;
+  g_live_result = 0;
+  atomic_store(&g_live_stop, false);
+  g_live_running = true;
+  pid = task_create("camera_live", 95, 12288, live_worker, NULL);
+  if (pid < 0)
+    {
+      g_live_running = false;
+      free(g_live_preview);
+      g_live_preview = NULL;
+    }
+  nxmutex_unlock(&g_live_lock);
+  return pid < 0 ? -errno : 0;
+}
+
+void camera_live_stop(void)
+{
+  atomic_store(&g_live_stop, true);
+}
+
+int camera_live_status(void)
+{
+  int ret;
+  nxmutex_lock(&g_live_lock);
+  ret = g_live_running ? 1 : g_live_result;
+  nxmutex_unlock(&g_live_lock);
+  return ret;
+}
+
+uint32_t camera_live_take(uint16_t *pixels, uint32_t sequence)
+{
+  if (nxmutex_trylock(&g_live_preview_lock) < 0) return sequence;
+  if (g_live_preview && g_live_sequence && g_live_sequence != sequence)
+    {
+      memcpy(pixels, g_live_preview, CAMERA_PREVIEW_BYTES);
+      sequence = g_live_sequence;
+    }
+  nxmutex_unlock(&g_live_preview_lock);
+  return sequence;
+}
+#endif

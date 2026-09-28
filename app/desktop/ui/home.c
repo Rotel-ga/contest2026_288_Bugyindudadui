@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "desktop.h"
 #include "../fallguard/fallguard.h"
+#include "../photo_identify/photo_identify.h"
 #include <stdio.h>
 
 void desk_app_center(lv_event_t *event)
@@ -12,8 +13,10 @@ void desk_app_center(lv_event_t *event)
   desk_button(screen, "返回桌面", 790, 30, 180, 65, desk_home_event, NULL);
   card = desk_button(screen, "跌倒监护", 56, 145, 280, 170,
                      fallguard_event, NULL);
+  card = desk_button(screen, "拍照识物", 366, 145, 280, 170,
+                     photo_identify_event, NULL);
   (void)card;
-  desk_label(screen, "原生 LVGL 监控应用", 56, 345, 500, DESK_MUTED);
+  desk_label(screen, "原生应用", 56, 345, 500, DESK_MUTED);
   printf("DESKTOP PAGE app-center\n");
 }
 

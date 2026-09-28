@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "desktop.h"
 #include "../fallguard/fallguard.h"
+#include "../photo_identify/photo_identify.h"
 #include <nuttx/mutex.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
     {
       lv_timer_handler();
       fallguard_poll();
+      photo_identify_poll();
       if (first)
         {
           printf("DESKTOP READY\n");
@@ -63,6 +65,7 @@ cleanup:
   lv_nuttx_deinit(&result);
   lv_deinit();
   fallguard_preview_deinit();
+  photo_identify_reset();
   desk_zero(&g_desk, sizeof(g_desk));
   nxmutex_unlock(&g_owner);
   printf("DESKTOP EXIT\n");
