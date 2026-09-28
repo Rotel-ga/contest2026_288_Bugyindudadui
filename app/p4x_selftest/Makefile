@@ -6,12 +6,14 @@ include $(APPDIR)/Make.defs
 
 PROGNAME  = p4x_selftest
 PRIORITY  = SCHED_PRIORITY_DEFAULT
-STACKSIZE = 4096
+# The --jpeg-capture chain needs ~4.1 KB of stack; 4096 overflowed.
+STACKSIZE = 8192
 MODULE    = $(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST)
 
 MAINSRC = p4x_selftest_main.c
 CSRCS += p4x_camera_capture.c
 CSRCS += p4x_camera_csi.c
+CSRCS += jpeg_sw.c
 
 CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/freertos_compat/include
 CFLAGS += -I$(TOPDIR)/arch/risc-v/src/chip/esp-hal-3rdparty/components/upper_hal_cam/include

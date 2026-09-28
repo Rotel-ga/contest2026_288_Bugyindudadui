@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <nuttx/i2c/i2c_master.h>
@@ -24,6 +25,9 @@
 #include "esp_private/esp_cache_private.h"
 #include "hal/cam_ctlr_types.h"
 #include "freertos/FreeRTOS.h"
+
+#include "jpeg_sw.h"
+#include "p4x_camera_capture.h"
 
 #define SC2336_ADDR        0x30
 #define SC2336_SDA        7
@@ -82,11 +86,10 @@
 
 #define SC2336_CAPTURE_TIMEOUT_MS 3000
 
-/* Thumbnail export.  A full 1280x720 RGB565 frame is 1.8 MB, which would take
- * well over two minutes to shift out at 115200 baud, so send a decimated copy
- * instead: taking every 8th pixel in both axes gives 160x90 (28800 bytes,
- * ~3.5 s of base64).  That is enough to recognise the scene and prove the
- * capture is a real image rather than a zeroed buffer.
+/* Thumbnail export.  A full 1280x720 RGB565 frame is 1.8 MB, too big for the
+ * 115200 console, so send a box-averaged copy: every DIV x DIV source block is
+ * averaged into one pixel.  DIV=2 gives 640x360 (460800 bytes, ~53 s of
+ * base64); averaging instead of point-sampling removes the decimation aliasing.
  */
 
 /* Default sensor gain, written to {0x3e07, 0x3e06, 0x3e09}.
@@ -136,7 +139,7 @@
 
 #define SC2336_SKIP_FRAMES 5
 
-#define SC2336_THUMB_DIV  8
+#define SC2336_THUMB_DIV  2
 #define SC2336_THUMB_W    (SC2336_WIDTH / SC2336_THUMB_DIV)
 #define SC2336_THUMB_H    (SC2336_HEIGHT / SC2336_THUMB_DIV)
 
@@ -845,6 +848,15 @@ static void csi_emit_thumbnail(const uint8_t *frame)
   int row;
   int col;
   int i;
+  int sr;
+  int sc;
+  int n;
+  uint32_t racc;
+  uint32_t gacc;
+  uint32_t bacc;
+  uint16_t px;
+  uint16_t avg;
+  uint8_t pxb[SC2336_BYTES_PER_PIXEL];
 
   printf("camera_capture: thumb begin w=%d h=%d fmt=rgb565le bytes=%d\n",
          SC2336_THUMB_W, SC2336_THUMB_H,
@@ -854,13 +866,37 @@ static void csi_emit_thumbnail(const uint8_t *frame)
     {
       for (col = 0; col < SC2336_THUMB_W; col++)
         {
-          off = ((size_t)row * SC2336_THUMB_DIV * SC2336_WIDTH +
-                 (size_t)col * SC2336_THUMB_DIV) * SC2336_BYTES_PER_PIXEL;
+          racc = 0;
+          gacc = 0;
+          bacc = 0;
+
+          /* Box-average the DIV x DIV source block into one RGB565 pixel. */
+
+          for (sr = 0; sr < SC2336_THUMB_DIV; sr++)
+            {
+              for (sc = 0; sc < SC2336_THUMB_DIV; sc++)
+                {
+                  off = ((size_t)(row * SC2336_THUMB_DIV + sr) * SC2336_WIDTH +
+                         (size_t)(col * SC2336_THUMB_DIV + sc)) *
+                        SC2336_BYTES_PER_PIXEL;
+                  px = (uint16_t)(frame[off] | (frame[off + 1] << 8));
+                  racc += (px >> 11) & 0x1f;
+                  gacc += (px >> 5) & 0x3f;
+                  bacc += px & 0x1f;
+                }
+            }
+
+          n = SC2336_THUMB_DIV * SC2336_THUMB_DIV;
+          avg = (uint16_t)(((racc / n) << 11) |
+                           ((gacc / n) << 5) |
+                           (bacc / n));
+          pxb[0] = (uint8_t)(avg & 0xff);
+          pxb[1] = (uint8_t)(avg >> 8);
 
           for (i = 0; i < SC2336_BYTES_PER_PIXEL; i++)
             {
-              sum += frame[off + i];
-              trio[ntrio++] = frame[off + i];
+              sum += pxb[i];
+              trio[ntrio++] = pxb[i];
 
               if (ntrio < 3)
                 {
@@ -883,7 +919,7 @@ static void csi_emit_thumbnail(const uint8_t *frame)
         }
     }
 
-  /* Flush a partial group, then a partial line.  160x90x2 is a multiple of
+  /* Flush a partial group, then a partial line.  640x360x2 is a multiple of
    * three so the padding branch is not normally taken, but keep it correct.
    */
 
@@ -912,6 +948,178 @@ static void csi_emit_thumbnail(const uint8_t *frame)
     }
 
   printf("camera_capture: thumb end sum32=0x%08lx\n", (unsigned long)sum);
+}
+
+/* Software-JPEG switches, set by the --jpeg-capture command. */
+
+int g_p4x_jpeg_emit;
+int g_p4x_jpeg_awb;
+
+/* Grey-world target mean, permille; same as thumb_image._grey_world. */
+
+#define P4X_JPEG_AWB_TARGET 580
+
+/****************************************************************************
+ * Name: p4x_jpeg_emit_frame
+ *
+ * Description:
+ *   Encode the RGB565 frame to a baseline JPEG on the CPU and print it as
+ *   "jpg:" base64 lines.  With awb set, grey-world gains are applied during
+ *   encoding, since the stdlib-only host cannot touch JPEG pixels.
+ *
+ ****************************************************************************/
+
+static void p4x_jpeg_emit_frame(const uint8_t *frame, int width, int height,
+                                int awb)
+{
+  static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                            "abcdefghijklmnopqrstuvwxyz"
+                            "0123456789+/";
+  const int cap = 512 * 1024;
+  uint32_t gains[3];
+  struct timespec t0;
+  struct timespec t1;
+  unsigned long enc_ms;
+  uint8_t *jpg;
+  uint32_t sum = 0;
+  char line[80];
+  uint8_t trio[3];
+  int nl = 0;
+  int nt = 0;
+  int n;
+  int k;
+
+  jpg = heap_caps_malloc(cap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (jpg == NULL)
+    {
+      jpg = malloc(cap);
+    }
+
+  if (jpg == NULL)
+    {
+      printf("jpeg_sw: output alloc failed (%d bytes)\n", cap);
+      return;
+    }
+
+  clock_gettime(CLOCK_MONOTONIC, &t0);
+  if (awb)
+    {
+      jpeg_sw_grey_world((const uint16_t *)frame, width * height,
+                         P4X_JPEG_AWB_TARGET, gains);
+    }
+
+  n = jpeg_sw_encode_rgb565((const uint16_t *)frame, width, height, 80,
+                            awb ? gains : NULL, jpg, cap);
+  clock_gettime(CLOCK_MONOTONIC, &t1);
+  enc_ms = (unsigned long)((t1.tv_sec - t0.tv_sec) * 1000 +
+                           (t1.tv_nsec - t0.tv_nsec) / 1000000);
+  if (n < 0)
+    {
+      printf("jpeg_sw: encode failed (overflow, cap=%d)\n", cap);
+      free(jpg);
+      return;
+    }
+
+  for (k = 0; k < n; k++)
+    {
+      sum += jpg[k];
+    }
+
+  if (awb)
+    {
+      printf("jpeg_sw: awb gain_q16 r=%lu g=%lu b=%lu\n",
+             (unsigned long)gains[0], (unsigned long)gains[1],
+             (unsigned long)gains[2]);
+    }
+
+  printf("jpeg_sw: begin bytes=%d w=%d h=%d q=80 sum32=0x%08lx awb=%s "
+         "enc_ms=%lu\n", n, width, height, (unsigned long)sum,
+         awb ? "on" : "off", enc_ms);
+
+  for (k = 0; k < n; k++)
+    {
+      trio[nt++] = jpg[k];
+      if (nt == 3)
+        {
+          line[nl++] = b64[trio[0] >> 2];
+          line[nl++] = b64[((trio[0] & 0x3) << 4) | (trio[1] >> 4)];
+          line[nl++] = b64[((trio[1] & 0xf) << 2) | (trio[2] >> 6)];
+          line[nl++] = b64[trio[2] & 0x3f];
+          nt = 0;
+          if (nl >= 72)
+            {
+              line[nl] = '\0';
+              printf("jpg:%s\n", line);
+              nl = 0;
+            }
+        }
+    }
+
+  if (nt > 0)
+    {
+      uint8_t a = trio[0];
+      uint8_t b = (nt > 1) ? trio[1] : 0;
+      line[nl++] = b64[a >> 2];
+      line[nl++] = b64[((a & 0x3) << 4) | (b >> 4)];
+      line[nl++] = (nt > 1) ? b64[(b & 0xf) << 2] : '=';
+      line[nl++] = '=';
+    }
+
+  if (nl > 0)
+    {
+      line[nl] = '\0';
+      printf("jpg:%s\n", line);
+    }
+
+  printf("jpeg_sw: end\n");
+  free(jpg);
+}
+
+/****************************************************************************
+ * Name: p4x_jpeg_selftest
+ *
+ * Description:
+ *   Encode a synthetic RGB565 gradient to JPEG and emit it, decoupled from
+ *   the camera sensor.  Verifies the on-device software encoder end-to-end
+ *   even when the flaky SC2336 I2C init is failing.
+ *
+ ****************************************************************************/
+
+int p4x_jpeg_selftest(void)
+{
+  const int W = SC2336_WIDTH;
+  const int H = SC2336_HEIGHT;
+  uint16_t *img;
+  int x;
+  int y;
+
+  img = heap_caps_malloc((size_t)W * H * 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (img == NULL)
+    {
+      img = malloc((size_t)W * H * 2);
+    }
+  if (img == NULL)
+    {
+      printf("jpeg_sw: selftest alloc failed\n");
+      return -1;
+    }
+
+  for (y = 0; y < H; y++)
+    {
+      for (x = 0; x < W; x++)
+        {
+          int r5 = (x * 31) / (W - 1);
+          int g6 = (y * 63) / (H - 1);
+          int b5 = ((x / 16 + y / 16) & 1) ? 31 : 4;
+          img[y * W + x] = (uint16_t)((r5 << 11) | (g6 << 5) | b5);
+        }
+    }
+
+  /* AWB off: keep the synthetic output byte-reproducible on the host. */
+
+  p4x_jpeg_emit_frame((const uint8_t *)img, W, H, 0);
+  free(img);
+  return 0;
 }
 
 int p4x_camera_capture_csi(const char *output, const int *gain)
@@ -1196,7 +1404,20 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
   if (ret == 0 && capture.finished)
     {
       csi_report_stats(frame);
-      csi_emit_thumbnail(frame);
+
+      /* The JPEG replaces the thumbnail: sending both would cost the
+       * ~7 s of THUMB traffic that JPEG is meant to remove.
+       */
+
+      if (g_p4x_jpeg_emit)
+        {
+          p4x_jpeg_emit_frame(frame, SC2336_WIDTH, SC2336_HEIGHT,
+                              g_p4x_jpeg_awb);
+        }
+      else
+        {
+          csi_emit_thumbnail(frame);
+        }
     }
 
   if (ret == 0 && capture.finished && output != NULL)
@@ -1212,7 +1433,8 @@ int p4x_camera_capture_csi(const char *output, const int *gain)
            */
 
           printf("camera_capture: frame not saved to %s (errno=%d); "
-                 "use the THUMB lines above instead\n", output, errno);
+                 "use the %s lines above instead\n", output, errno,
+                 g_p4x_jpeg_emit ? "jpg" : "THUMB");
         }
       else
         {
