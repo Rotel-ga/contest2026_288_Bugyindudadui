@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
   printf("DESKTOP settings load=%d mode=%lu\n", ret,
          (unsigned long)g_desk.settings.mode);
   lv_init();
+  fallguard_preview_init();
   lv_nuttx_dsc_init(&info);
   lv_nuttx_init(&info, &result);
   if (!result.disp || !result.indev)
@@ -61,6 +62,7 @@ int main(int argc, char *argv[])
 cleanup:
   lv_nuttx_deinit(&result);
   lv_deinit();
+  fallguard_preview_deinit();
   desk_zero(&g_desk, sizeof(g_desk));
   nxmutex_unlock(&g_owner);
   printf("DESKTOP EXIT\n");

@@ -2,7 +2,7 @@
 
 ## 0. 交给其他 AI：先看这里，编译 / 烧录 / 验证
 
-**2026-09-28 当前交接入口：**优先阅读第 46.6 节。当前分支 `merge/esp32p4-desktop-camera`，本地 HEAD 与最近核对的 Rotel-ga 同名远程分支均为 `feae695`，已含面板控制和真实识别接入。后台 service 已取消，当前使用终端手动启动脚本，再由面板开始/停止按钮控制。此次回退只改主机运行方式，已有面板控制固件无需重烧。此前章节中的分支、未推送及服务状态均为阶段历史。
+**2026-09-28 当前交接入口：**最新照片预览实现见第 47 节；手动启动及取消后台 service 的使用方式见第 46.6 节。当前分支 `merge/esp32p4-desktop-camera`，最新本地预览代码已编译，尚未提交/推送或真机验收。预览涉及板端变更，需要用户烧录第 47 节新固件。此前“无需重烧”仅针对主机 service 回退。
 
 本节命令针对当前机器，使用 **Bash** 执行。工作区是 `/home/mi/Developer/openvela`，比赛 Git 仓库是其下的 `contest2026_288_Bugyindudadui`，不要在工作区根目录执行该项目的 Git 操作。
 
@@ -2850,3 +2850,69 @@ tools/monitor/fall_watch.py \
 已有日志证据支持按钮触发真实识别：21:16 一轮接收 1280×720 JPEG 约 125 KB，编码约 1.25 秒，整轮约 16.2 秒，模型返回了真实判断。该记录不代表识别准确率、长期稳定性或飞书送达已完成验收。
 
 本次仅更新本地开发报告与交接入口，未编译、未烧录、未提交、未推送。
+
+
+## 47. 原生跌倒监护页面显示每次采集照片（2026-09-28）
+
+用户要求将每次拍照结果放入“视频画面预留”框。已在本地实现，不开启连续视频流，不改变电脑脚本调用方式。
+
+### 实现
+
+- 从已停止 DMA 写入的 1280×720 RGB565 原图生成 480×270 等比例预览，居中放入 590×300 框。
+- 采集任务生成独立 pending 图，LVGL 线程 trylock 后复制到专用显示缓冲，更新图片缓存并刷新控件；生产者不调用 LVGL。两块缓冲共 518400 字节，约 506 KiB，初始化失败不阻断摄像头/识别。
+- JPEG 模式复用编码器的 grey-world 增益，预览颜色经相同 8 位映射、增益裁剪后缩小并量化为 RGB565，减少与电脑 JPEG 的差异。非 JPEG 模式显示原始 RGB565 缩小图。
+- 原始摄像头帧照常编码、传输和释放；预览不引用原始帧内存。采集失败保留上一张照片，旁边监控状态显示错误，照片标记 Photo #序号。
+- 离开页面保留最近照片，返回时立即显示；页面删除清空控件引用，桌面退出在 LVGL 释放后回收预览缓冲。未收到照片时显示 Waiting for photo。
+- 电脑仍采用手动启动，不使用后台 service。停止监控保留最后一张照片。
+
+### 验证
+
+组合配置通过根目录 build.sh 增量构建与链接；实际源文件主机 ASan/UBSan 测试通过 RGB 通道、方向、增益、原图修改后预览独立性、100 次更新与资源释放。容器禁用 LeakSanitizer。监控原有 16 项测试通过，git diff --check 通过。
+
+未执行烧录，真机颜色、方向、切页、触摸、堆余量及连续采集仍待用户验证，不能宣称屏幕照片已验收。
+
+新固件：`artifacts/merge-desktop-camera/20260928-camera-preview/nuttx.bin`
+大小：741032 字节；SHA-256：`ae680d8fbf2d1bbe1e41c3899f51d6958030e2413bca24ce8da30ca0fc284abd`。
+
+```bash
+cd /home/mi/Developer/openvela
+PORT=/dev/ttyACM0
+esptool --chip esp32p4 --port "$PORT" --baud 921600 \
+  --after hard-reset write-flash 0x2000 \
+  artifacts/merge-desktop-camera/20260928-camera-preview/nuttx.bin
+```
+
+烧录前停止监控脚本并关闭串口终端；烧录后使用原命令：
+
+```bash
+cd /home/mi/Developer/openvela/contest2026_288_Bugyindudadui
+tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120
+```
+
+打开跌倒监护页面点击开始；首次采集后框内应显示照片，移动拍摄对象后下一轮应更新，停止后照片保留；切回应用中心再进入页面应显示最近图。电脑 frames 目录继续保存 JPEG。此预览独立于网络识别，可在模型回应前更新。
+
+本轮尚未提交/推送，未改远程分支。
+
+
+### 47.1 当前交接与上板检查清单
+
+截至本次文档更新，照片预览处于“代码完成、组合固件编译和主机测试通过、等待用户烧录验收”阶段。尚未收到用户确认照片已在面板显示，不能沿用此前真实识别成功记录代替本次预览验收。
+
+当前分支 `merge/esp32p4-desktop-camera`；预览是最新的本地未提交改动，远程已推送的文档提交 `15b45d6` 不包含此功能。新增核心文件为 `app/fallguard/camera_preview.c`、`camera_preview.h` 和 `board/contest_board/tests/test_camera_preview.py`。
+
+**此次照片预览需要烧录第 47 节的 camera-preview 镜像。** 第 46.6 节“不需要重烧”仅适用于取消电脑后台 service，不能用于本次板端功能变更。固件归档相对 openvela 根目录，完整目录为 `/home/mi/Developer/openvela/artifacts/merge-desktop-camera/20260928-camera-preview/`，保存 ELF、config、System.map、build.log、源码差异、新增文件和 SHA256SUMS。
+
+用户上板后依次确认：
+
+1. 未开始采集时框内显示 Waiting for photo，桌面及触摸正常。
+2. 手动启动第 47 节脚本，点击开始，首次成功拍照后显示 Photo #1 与照片。
+3. 移动拍摄对象，后续采集更新照片及序号；方向、比例和颜色正常。
+4. 点击停止，当前轮结束后不继续采集，最后照片保持。
+5. 返回应用中心再进入跌倒监护，最近照片仍显示；随后再次开始可更新。
+6. 观察连续采集与页面切换是否导致黑屏、撕裂、触摸卡顿或内存持续下降。
+
+PC 端成功校验的原始 JPEG 仍保存于 `out/monitor/frames/`，最新为 `out/monitor/latest.jpg`；板上预览来自同一采集帧的缩小图，不读取电脑目录。照片更新不等于模型识别完成，应结合旁边的监控状态判断；旧照片在采集失败后保留，不应当作最新成功检测。
+
+若要先验证显示而不调用真实模型，可在相同命令中把 `--backend direct` 改为 `--backend mock` 并保留 `--dry-run`；这不改变板端预览路径。
+
+本次只更新本地文档，没有再次改代码、编译、烧录、提交或推送。
