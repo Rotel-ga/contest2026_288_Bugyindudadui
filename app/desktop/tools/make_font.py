@@ -4,13 +4,15 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import re
 root = Path(__file__).resolve().parents[1]
+source_roots = [root, root.parent / 'fallguard']
 font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
 font = ImageFont.truetype(font_path, 24, index=2)
 chars = set(chr(i) for i in range(32, 127))
-for p in root.rglob('*.c'):
-    if 'assets' not in p.parts:
-        for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', p.read_text()):
-            chars.update(c for c in literal if ord(c) >= 127)
+for source_root in source_roots:
+    for p in source_root.rglob('*.c'):
+        if 'assets' not in p.parts:
+            for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', p.read_text()):
+                chars.update(c for c in literal if ord(c) >= 127)
 chars = sorted(chars, key=ord)
 bitmap = []
 glyphs = [(0, 0, 0, 0, 0, 0)]

@@ -57,6 +57,7 @@ void desk_notice(const char *text);
 void desk_home(void);
 void desk_lock(void);
 void desk_settings_page(void);
+void desk_app_center(lv_event_t *event);
 void desk_request_mode(enum desk_lock_mode mode);
 void desk_pin_unlock(void);
 void desk_exit_request(lv_event_t *event);
