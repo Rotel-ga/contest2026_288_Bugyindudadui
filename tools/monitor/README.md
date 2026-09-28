@@ -54,3 +54,12 @@ tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend
 ```
 
 终端手动运行后等待面板开始/停止按钮。使用真实模型识别，dry-run 仅禁止飞书告警。停止在本轮完成后生效；Ctrl+C 退出脚本。不使用后台 service，不登录自动启动。不传 --panel-control 时保持直接采集行为。终端需配置 MIMO_API_KEY。
+
+
+## 板端照片预览（本地新增，待真机验收）
+
+包含 `camera_preview` 的组合固件可在跌倒监护页面的原“视频画面预留”框显示每次成功采集的照片，480×270 等比例居中，按采集更新，不是连续视频。停止后保留最后一张，切页返回可再次显示。电脑脚本继续使用上面的手动面板控制命令，不需要后台 service。
+
+此功能需要烧录 `artifacts/merge-desktop-camera/20260928-camera-preview/nuttx.bin`（相对 openvela 根目录）。该镜像 741032 字节，SHA-256 为 `ae680d8fbf2d1bbe1e41c3899f51d6958030e2413bca24ce8da30ca0fc284abd`。代码和编译检查已通过，尚未确认真机显示成功。
+
+板上预览直接从采集帧生成，电脑 JPEG 保存位置不变。操作命令及验收项见 [开发报告第 47 节](../../docs/bringup/official_lcd_feishu_report.md#47-原生跌倒监护页面显示每次采集照片2026-09-28)。
