@@ -17,8 +17,8 @@ python3 .claude/skills/esp32p4-repro-check/scripts/check_baseline.py --repo .
 
 The default `final` profile verifies the complete work:
 
-- functional source baseline `79b565e` is an ancestor of `HEAD` and its tree matches;
-- firmware and host tools (`app/`, `board/contest_board/`, `tools/`, documentation excluded) are unchanged since that baseline;
+- source baseline by content: the digest of the 254 committed files under `app/`, `board/contest_board/` and `tools/` (`*.md` and `.built` excluded) equals `7698ec765f6f2f18fbd9a40014c4a57a5bf7cb36be3d4385a1600fdd90c613b3`, the sources of team-fork commit `79b565e`. The official repository merges with "Rebase and merge", so the same sources carry different commit IDs there; whether `79b565e` is an ancestor of `HEAD` is reported for information only;
+- no uncommitted or untracked build inputs in those three directories;
 - the three manifest mappings exist, including `app/desktop → packages/demos/contest2026_288_desktop`;
 - configuration contracts: `desktop_camera = desktop + selftest`, `demo = i2c + camera`, and `desktop_camera` does not enable `I2C_TRACE`;
 - 24 device and entry-point tokens (`/dev/gpio0`, `/dev/i2c1`, framebuffer, touch, `/data`, `fgctl`, `pictl`, PIN storage, IRQ and USB frame paths);
@@ -26,15 +26,15 @@ The default `final` profile verifies the complete work:
 - official `esp_lcd` provenance: reversing `openvela.patch` on a temporary copy restores all 19 upstream hashes;
 - stored `p4x_selftest` evidence hashes.
 
-Expected result on a clean checkout: `Summary: PASS=11 FAIL=0 RESULT=PASS`.
+Expected result on a clean checkout of the team fork or the official repository: `Summary: PASS=10 FAIL=0 RESULT=PASS`. Documentation, Skill and manifest commits leave the digest unchanged; any committed change to a firmware or host-tool file changes it.
 
-Use `--profile p0` only on a checkout of the 2026-09-17 bring-up period (four configurations, `demo = i2c + selftest`). On the final tree the `p0` profile reports the post-P0 BSP changes by design. Add `--json` for machine-readable output.
+Use `--profile p0` only on a checkout of the 2026-09-17 bring-up period (four configurations, `demo = i2c + selftest`); it verifies commit `35a953c` and its tree. On the final tree the `p0` profile reports the post-P0 BSP changes by design. Add `--json` for machine-readable output; `--expected-digest` audits a different `final` source state.
 
 Stop if any check fails. Do not repair a mismatch by resetting, cleaning, or changing branches without explicit user approval.
 
 ## Follow the gated workflow
 
-1. **Verify identity** with the preflight above.
+1. **Verify the source baseline** with the preflight above.
 2. **Record the environment.** Save `repo manifest -r`, repository status, tool versions, board revision, actual serial devices and command lines.
 3. **Build one configuration at a time.** For each of `nsh`, `uart0`, `i2c`, `demo`, `lcd`, `desktop`, `desktop_camera`, run `distclean → prepare_esp_hal.sh → mbedTLS submodule update → build`. Require exit status 0 and `Generated: nuttx.bin`; archive image size and SHA-256. `desktop` and `desktop_camera` need the `app/desktop` manifest link; without it the link step fails on `desktop_boot_main`.
 4. **Run the host tests** (`board/contest_board/tests/*.py`, `tools/monitor/tests/*.py`, `tools/photo_identify/tests/*.py`) with `ASAN_OPTIONS=detect_leaks=0`; require all 11 files to pass.

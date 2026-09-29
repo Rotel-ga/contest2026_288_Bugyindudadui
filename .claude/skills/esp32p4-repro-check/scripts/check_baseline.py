@@ -7,7 +7,12 @@ Two profiles are supported:
 
   final (default)  functional source baseline of the complete work
                    (display, touch, desktop/lock screen, camera, fall monitor,
-                   photo identification) plus the seven build configurations
+                   photo identification) plus the seven build configurations.
+                   The baseline is identified by a digest of the committed
+                   firmware and host-tool files, so the check gives the same
+                   answer on the team fork (history contains 79b565e) and on
+                   the official repository, where the same sources were merged
+                   with new commit IDs by "Rebase and merge".
   p0               the frozen 2026-09-17 board-bring-up baseline (four
                    configurations, demo = i2c + selftest); only meaningful on a
                    checkout from that period
@@ -32,6 +37,10 @@ import xml.etree.ElementTree as ET
 MANIFEST = "contest2026_288_Bugyindudadui.xml"
 SELFTEST_CONFIG = "CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST=y"
 CONFIG_DIR = "board/contest_board/configs"
+
+# Firmware and host-tool inputs covered by the final-profile source digest.
+# Documentation (*.md) and local build markers (.built) are excluded.
+SOURCE_ROOTS = ("app", "board/contest_board", "tools")
 
 # Stored p4x_selftest evidence (unchanged since the P0 baseline).
 EVIDENCE_HASHES = {
@@ -225,6 +234,63 @@ class Preflight:
             else "; ".join(changed),
         )
 
+    # ------------------------------------------------------------ source digest
+    def source_digest(self, revision: str) -> tuple[str, int]:
+        """SHA-256 over sorted "mode blob path" lines of committed build inputs."""
+        listing = self.git("ls-tree", "-r", "--full-tree", revision, "--", *SOURCE_ROOTS)
+        entries = []
+        for line in listing.splitlines():
+            meta, path = line.split("\t", 1)
+            mode, _kind, blob = meta.split()
+            if ignore_docs_and_markers(path):
+                continue
+            entries.append(f"{mode} {blob} {path}")
+        entries.sort()
+        return hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest(), len(entries)
+
+    def history_note(self, commit: str) -> str:
+        head = self.git("rev-parse", "HEAD")
+        exists = subprocess.run(
+            ["git", "-C", str(self.repo), "cat-file", "-e", f"{commit}^{{commit}}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ).returncode == 0
+        ancestor = exists and subprocess.run(
+            ["git", "-C", str(self.repo), "merge-base", "--is-ancestor", commit, head],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ).returncode == 0
+        if ancestor:
+            return f"fork commit {commit[:7]} is an ancestor of HEAD"
+        return (f"fork commit {commit[:7]} is not an ancestor of HEAD "
+                "(informational: Rebase and merge assigns new commit IDs)")
+
+    def check_source_digest(self, expected: str, commit: str) -> None:
+        # The digest covers the sorted file list, so the file count is reported
+        # for readability but is not compared separately.
+        digest, files = self.source_digest("HEAD")
+        passed = digest == expected
+        detail = f"digest={digest} files={files}"
+        if not passed:
+            detail += f" expected={expected}"
+        self.record("source baseline", passed, f"{detail}; {self.history_note(commit)}")
+
+    def check_no_uncommitted(self, paths: tuple[str, ...],
+                             ignore: Callable[[str], bool]) -> None:
+        status = subprocess.run(
+            ["git", "-C", str(self.repo), "status", "--porcelain",
+             "--untracked-files=all", "--", *paths],
+            check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        ).stdout.splitlines()
+        # Porcelain lines start with a two-column status; renames read
+        # "old -> new", and either side may be a build input.
+        dirty = [line for line in status
+                 if line and not all(ignore(part.strip().strip('"'))
+                                     for part in line[3:].split(" -> "))]
+        self.record(
+            "no uncommitted firmware changes",
+            not dirty,
+            "working tree matches the committed sources" if not dirty else "; ".join(dirty),
+        )
+
     # ------------------------------------------------------------ manifest
     def check_linkfiles(self, expected: dict[str, str]) -> None:
         root = ET.parse(self.repo / MANIFEST)
@@ -384,8 +450,12 @@ def ignore_markers(path: str) -> bool:
 
 PROFILES = {
     "final": {
+        # Content identity of the committed firmware and host-tool files at the
+        # team-fork commit below. The commit is only reported as history: the
+        # official repository merges with "Rebase and merge", so the same
+        # sources arrive there under different commit IDs.
+        "digest": "7698ec765f6f2f18fbd9a40014c4a57a5bf7cb36be3d4385a1600fdd90c613b3",
         "commit": "79b565e814a5d8850edfbaa1a423a35be8eb92d7",
-        "tree": "1c574b39baa21787d5ca2eb2baa535db462f6c14",
         "description": "complete work: display, touch, desktop/PIN lock, camera, fall monitor, photo identification",
     },
     "p0": {
@@ -396,16 +466,10 @@ PROFILES = {
 }
 
 
-def run_final(preflight: Preflight, commit: str, identity_ok: bool) -> None:
+def run_final(preflight: Preflight, digest: str, commit: str) -> None:
+    preflight.check_source_digest(digest, commit)
+    preflight.check_no_uncommitted(SOURCE_ROOTS, ignore_docs_and_markers)
     preflight.check_required_paths(FINAL_REQUIRED)
-    if identity_ok:
-        preflight.check_unchanged(
-            "firmware and host tools unchanged", commit,
-            ("app", "board/contest_board", "tools"), ignore_docs_and_markers,
-        )
-    else:
-        preflight.record("firmware and host tools unchanged", False,
-                         "expected baseline commit/tree unavailable")
     preflight.check_linkfiles(FINAL_LINKFILES)
     preflight.check_final_configs()
     preflight.check_tokens(FINAL_TOKENS)
@@ -441,19 +505,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--profile", choices=sorted(PROFILES), default="final",
                         help="final (default): complete work; p0: 2026-09-17 bring-up baseline")
+    parser.add_argument("--expected-digest", default=None,
+                        help="final: override the source digest")
     parser.add_argument("--expected-commit", default=None,
-                        help="override the profile's baseline commit")
+                        help="p0: baseline commit; final: fork commit reported as history")
     parser.add_argument("--expected-tree", default=None,
-                        help="override the profile's baseline tree")
+                        help="p0: override the baseline tree")
     parser.add_argument("--json", action="store_true", dest="json_output")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.profile == "final" and args.expected_tree:
+        parser.error("--expected-tree applies to --profile p0 only")
+    if args.profile == "p0" and args.expected_digest:
+        parser.error("--expected-digest applies to --profile final only")
+    return args
 
 
 def main() -> int:
     args = parse_args()
     profile = PROFILES[args.profile]
     commit = args.expected_commit or profile["commit"]
-    tree = args.expected_tree or profile["tree"]
     try:
         repo = Path(
             subprocess.run(
@@ -472,11 +542,11 @@ def main() -> int:
 
     preflight = Preflight(repo)
     try:
-        identity_ok = preflight.check_identity(commit, tree)
         if args.profile == "final":
-            run_final(preflight, commit, identity_ok)
+            run_final(preflight, args.expected_digest or profile["digest"], commit)
         else:
-            run_p0(preflight, commit, identity_ok)
+            tree = args.expected_tree or profile["tree"]
+            run_p0(preflight, commit, preflight.check_identity(commit, tree))
     except (OSError, subprocess.CalledProcessError, ET.ParseError, ValueError) as error:
         preflight.record("preflight execution", False, str(error))
 
