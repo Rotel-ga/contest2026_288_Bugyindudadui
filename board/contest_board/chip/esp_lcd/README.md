@@ -73,11 +73,20 @@ HAL with `board/contest_board/tools/prepare_esp_hal.sh`, initialize its mbedTLS
 submodule, and rerun the same build. Do not edit optional board settings without
 accounting for this behavior.
 
-Validation performed in this session: LCD configuration compiles and links;
-ESP32-P4 image generated. Make integration tested; CMake source integration
-updated but a separate CMake build was not run. No serial board was available,
-so PLL lock, actual scanout, LVGL animation, cold boot and teardown still need
-hardware validation. Build success does not prove display output.
+Initial port validation (2026-09-24, no board attached): the LCD configuration
+compiles and links and the ESP32-P4 image is generated. Make integration is
+tested; CMake source integration is updated but a separate CMake build was not
+run.
+
+Hardware validation (2026-09-24, see
+[official_lcd_feishu_report.md](../../../../docs/bringup/official_lcd_feishu_report.md)
+sections 25–30): Host colour bars and full-screen red/green/blue/white patterns
+confirmed by the user; DMA frame-complete count about 60 per second; `lvgldemo
+widgets` opened `/dev/fb0` (1024x600 RGB565, stride 2048) and showed LVGL
+widgets; a 300 s `lcdrefresh` run (developer-local test app, not in this
+repository) completed 14999 update loops without framebuffer errors; GT911 touch works on the same panel. The desktop and the
+`desktop_camera` combined firmware run on this path. Cold-boot statistics,
+repeated teardown/re-initialisation and page flipping are still not validated.
 
 Hardware acceptance order:
 
@@ -87,5 +96,6 @@ Hardware acceptance order:
 4. If real output fails, use Host pattern as a separate PHY/panel test.
 5. Validate repeated initialization/error recovery and then page flipping.
 
-The old handwritten implementation is preserved at local checkpoint `e55ea1d`
-and branch `backup/esp32p4-handwritten-lcd`.
+The old handwritten implementation is preserved in this repository's history
+at commit `e55ea1d` (the `backup/esp32p4-handwritten-lcd` branch exists only in
+the developer's local repository).

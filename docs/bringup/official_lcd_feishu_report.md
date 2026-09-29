@@ -1,5 +1,10 @@
 # ESP32-P4X openvela 官方显示驱动移植全记录
 
+> **阅读说明（2026-09-29）**：本文是 2026-09-24～28 开发过程的逐日记录，按时间追加，前面章节的状态会被后面章节更新。
+> 当前构建、烧录与使用方法以仓库根目录 [README](../../README.md) 为准；文中的 `/home/mi/Developer/openvela` 是开发者本机工作区，
+> `artifacts/...`、`/tmp/*.py`、`lcd_hardware_20260924/*.log`、`openvela_adaptation_evidence.md`、`app/lcd_refresh`、
+> `build_lcd.sh`、`quickapp/fall_guard/` 等为开发者本机文件，未入仓；快应用（RPK）路线未完成，最终作品采用原生 LVGL 应用。
+
 ## 0. 交给其他 AI：先看这里，编译 / 烧录 / 验证
 
 **2026-09-28 当前交接入口：**两个原生应用的实际操作步骤、命令、切换和排障统一见第 51 节。最新组合固件为 photo-ai-fontfix（第 50.1 节），识物脚本已修复握手诊断和生成额度（第 50.2～50.3 节）；默认额度 4096。保留手动运行方式，不使用后台 service。
@@ -1137,9 +1142,9 @@ stride: 2048
 bpp: 16
 ```
 
-上面摘录缩略了日志前缀，完整记录见 [LVGL 日志](lcd_hardware_20260924/lvgl_widgets.log)；两轮填色记录见 [颜色测试日志](lcd_hardware_20260924/color_test.log)。
+上面摘录缩略了日志前缀，完整记录见 LVGL 日志（开发者本机文件 `lcd_hardware_20260924/lvgl_widgets.log`，未入仓）；两轮填色记录见 颜色测试日志（开发者本机文件 `lcd_hardware_20260924/color_test.log`，未入仓）。
 
-用户随后提供实拍照片，已保存为 [LVGL Widgets 上屏照片](lcd_hardware_20260924/lvgl_widgets.jpg)。照片可见 LVGL v9.1.0 标识、Profile/Analytics/Shop 标签、头像、文字、按钮、输入框、滑条和开关，整体页面完整，未见此前大片黑蓝分区。拍摄条纹、反光和保护膜痕迹不能仅凭照片归为刷新故障。
+用户随后提供实拍照片，已保存为 LVGL Widgets 上屏照片（开发者本机文件 `lcd_hardware_20260924/lvgl_widgets.jpg`，未入仓）。照片可见 LVGL v9.1.0 标识、Profile/Analytics/Shop 标签、头像、文字、按钮、输入框、滑条和开关，整体页面完整，未见此前大片黑蓝分区。拍摄条纹、反光和保护膜痕迹不能仅凭照片归为刷新故障。
 
 **可记录通过：真实 RGB 填色切换、正常横向 RGB 三条、LVGL 控件页面首次完整上屏。** Profile 页面静止不等于刷新卡死；持续动画、触摸、长期稳定性和冷启动仍需后续独立测试。当前没有因为照片而新增任何驱动修改或再次烧录。
 
@@ -1176,7 +1181,7 @@ nsh> uptime
 
 用户观察反馈“正常，不影响视觉观感”。结合 300 秒连续进度日志、无采集到的 framebuffer 更新错误/崩溃、正常退出并响应 NSH，本轮动态显示测试通过。14999 是应用更新循环次数，不是面板实测帧数；板级 framebuffer 保留分配，不能仅凭退出后 heap 数字判定内存泄漏。
 
-证据：完整日志 [refresh_300s.log](lcd_hardware_20260924/refresh_300s.log)。本轮已烧录镜像、配置、构建/烧录日志及源码快照归档至工作区 `artifacts/lcd-hardware-validation/refresh-test/`，内有 SHA256SUMS。后续仅调整了测试源文件注释和格式，尚未重新烧录；不要假定当前源码快照的字节内容与最后格式调整完全相同。
+证据：完整日志 `lcd_hardware_20260924/refresh_300s.log`（开发者本机归档，未入仓）。本轮已烧录镜像、配置、构建/烧录日志及源码快照归档至工作区 `artifacts/lcd-hardware-validation/refresh-test/`，内有 SHA256SUMS。后续仅调整了测试源文件注释和格式，尚未重新烧录；不要假定当前源码快照的字节内容与最后格式调整完全相同。
 
 当前显示基线可用于下一轮 GT911 探测和接入。尚未完成触摸、桌面、多次启动退出、冷启动统计和长期稳定性；USB 复位/重新枚举、ROM 摘要告警仍作为独立问题保留。本轮无 Git 提交或推送。
 
@@ -1243,7 +1248,7 @@ GTPROBE addr=0x14 ID read failed errno=5
 GTPROBE COMPLETE identified=1 result=PASS; touch events not tested
 ```
 
-因此芯片通信已通过，地址为 0x5D；0x14 不响应不能视为该屏触摸故障。证据见 [gt911_probe.log](lcd_hardware_20260924/gt911_probe.log)，初始探测固件归档于工作区 `artifacts/lcd-hardware-validation/gt911-probe/`。
+因此芯片通信已通过，地址为 0x5D；0x14 不响应不能视为该屏触摸故障。证据见 `lcd_hardware_20260924/gt911_probe.log`（开发者本机归档，未入仓），初始探测固件归档于工作区 `artifacts/lcd-hardware-validation/gt911-probe/`。
 
 **旧命令 `python3 /tmp/p4-run-gtprobe.py` 仅发送 `gtprobe`，不启动 LVGL、不采集触摸事件。** 打开串口仍观察到 USB 复位，设备会回到启动画面；该脚本运行后点屏幕不会产生可见反馈。用户报告看到类似之前的割裂画面，尚不能据此判定显示驱动回归或认定它就是正常色带，需用下面的新测试页区分。
 
@@ -1291,7 +1296,7 @@ gtprobe 300
 
 用户先确认“可以触摸”，随后报告滑动方向相反；加入 X/Y 两轴镜像并重新编译烧录后，用户确认“现在好了”。因此可以记录：**GT911 通信正常，原始触摸事件可读，诊断页方向修正后用户确认正常。**
 
-方向修正后的串口日志阶段快照见 [gt911_mirror_user_confirmed.log](lcd_hardware_20260924/gt911_mirror_user_confirmed.log)。保存时已记录 2 次 DOWN、72 次 MOVE、2 次 UP，两次按下均有对应松开；这些是该快照内的计数，不是完整 300 秒统计，也不是全部验收动作计数。用户操作与日志共同支持本轮结果，尚未单独统计四角精度、20 次点击、长按稳定性或 300 秒结束结果。
+方向修正后的串口日志阶段快照见 `lcd_hardware_20260924/gt911_mirror_user_confirmed.log`（开发者本机归档，未入仓）。保存时已记录 2 次 DOWN、72 次 MOVE、2 次 UP，两次按下均有对应松开；这些是该快照内的计数，不是完整 300 秒统计，也不是全部验收动作计数。用户操作与日志共同支持本轮结果，尚未单独统计四角精度、20 次点击、长按稳定性或 300 秒结束结果。
 
 当前固件基线位于工作区 `artifacts/lcd-hardware-validation/gt911-mirror-test/`，SHA-256 为 `9206d80d004f083493351e2045aa00ffc269c0503a75f331e1a3c393baf98935`。第 29 节编译入口和主机采集命令仍有效；板端 `gtprobe` 仅探测芯片，`gtprobe 300` 才启动可见触摸测试。测试正在采集时不要再打开第二个串口程序。
 
@@ -1338,7 +1343,7 @@ CONTROLS SWITCH state=OFF changes=4
 CONTROLS SLIDER value=79 changes=39
 ```
 
-以上为不同时间的结果摘录。完整日志见 [touch_controls_confirmed.log](lcd_hardware_20260924/touch_controls_confirmed.log)。本轮可记录 **GT911 → NuttX `/dev/input0` → LVGL 输入后端 → 标准按钮/开关/滑条交互通过用户确认**；6/4/39 是日志中的点击数、开关变化数、滑条值变化数，不是预设测试次数。用户要求提前退出，未等待 `CONTROLS COMPLETE`，不能记作完整 300 秒或长期稳定性通过。四角精度、长按次数与重复进入退出仍需专门统计。
+以上为不同时间的结果摘录。完整日志见 `lcd_hardware_20260924/touch_controls_confirmed.log`（开发者本机归档，未入仓）。本轮可记录 **GT911 → NuttX `/dev/input0` → LVGL 输入后端 → 标准按钮/开关/滑条交互通过用户确认**；6/4/39 是日志中的点击数、开关变化数、滑条值变化数，不是预设测试次数。用户要求提前退出，未等待 `CONTROLS COMPLETE`，不能记作完整 300 秒或长期稳定性通过。四角精度、长按次数与重复进入退出仍需专门统计。
 
 板级新增 `src/esp32p4_touch.c`，复用 NuttX touchscreen upper half 的事件队列、read/poll 和 `TSIOC_GETMAXPOINTS`。独立内核任务轮询 GT911，仅发布一个主触点；没有新报告时保留状态，X/Y 镜像仅在板级转换一次。开启 `ESP32P4_BOARD_TOUCH`、`INPUT_TOUCHSCREEN` 和 `LV_USE_NUTTX_TOUCHSCREEN`。旧 `gtprobe` 在 `/dev/input0` 存在时拒绝读取，避免争用芯片报告。没有修改通用 GT9XX 驱动，也没有改 LCD 时序。
 
@@ -1386,7 +1391,7 @@ touchcontrols 300
 /home/mi/.local/bin/esptool --chip esp32p4 --port /dev/ttyACM0 run
 ```
 
-端口必须按设备序列号确认；已执行复位退出，本次不等同于应用自然退出或资源释放验收。退出后未再启动图形程序；只读日志已确认 `GT911 /dev/input0 ready` 后出现 `NuttShell (NSH)` 和 `nsh>`，见 [退出后的启动日志](lcd_hardware_20260924/touch_controls_exit.log)。采集已结束，串口已关闭。
+端口必须按设备序列号确认；已执行复位退出，本次不等同于应用自然退出或资源释放验收。退出后未再启动图形程序；只读日志已确认 `GT911 /dev/input0 ready` 后出现 `NuttShell (NSH)` 和 `nsh>`，见 退出后的启动日志（开发者本机文件 `lcd_hardware_20260924/touch_controls_exit.log`，未入仓）。采集已结束，串口已关闭。
 
 ### 31.4 下一步：一个能进入和返回的简单桌面
 
@@ -1513,7 +1518,7 @@ SHA-256: a04ef08ca77e7c87f537034c670dc41ffab6d62ce01c095d161013be7a91230e
 重新启动。不要同时运行其他 LVGL 测试程序。
 
 本次文档更新时保存的交互快照：
-[desktop_completion_snapshot.log](lcd_hardware_20260924/desktop_completion_snapshot.log)。
+`lcd_hardware_20260924/desktop_completion_snapshot.log`（开发者本机归档，未入仓）。
 快照包含多轮启动和调试历史；应按最后一次启动段判断修复版结果，不能把早期
 NACK 错误归到后续修复版。归档目录里的原始镜像和 SHA256SUMS 保持原样。
 
@@ -1599,7 +1604,7 @@ SHA-256: 96da0e01e4a2f54dbcd6e3ec826bb32ccd0373a8f4f988e7fab36ca8ed5b2dd4
 
 ## 35. 当前固件确实运行在 openvela 上的证据（2026-09-24）
 
-详见 [openvela 适配证据报告](openvela_adaptation_evidence.md)。已核对 manifest
+详见 openvela 适配证据报告（开发者本机文件 `openvela_adaptation_evidence.md`，未入仓）。已核对 manifest
 来源、NuttX 内核启动链、标准设备/文件系统接口、最终 ELF 符号，并由当前 ELF
 重新生成镜像，与已烧录 standalone-console-fix 镜像逐字节一致。证据归档在
 工作区 `artifacts/desktop/openvela-proof/`。本轮没有连接串口、烧录或复位。
@@ -1675,7 +1680,7 @@ Quick App resources and KVDB ready; /data is volatile.
 nsh>
 ```
 
-证据：[fallguard_kvdb_ready.log](lcd_hardware_20260924/fallguard_kvdb_ready.log)。
+证据：`lcd_hardware_20260924/fallguard_kvdb_ready.log`（开发者本机归档，未入仓）。
 通过范围为资源准备和 KVDB 共享区 magic 就绪；未执行真实属性读写往返，
 未验证长期服务循环，未启动快应用 UI。/dev/urandom 缺失提示仍待处理，
 不把可选失败忽略为所有依赖均正常。
