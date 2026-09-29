@@ -4,7 +4,7 @@
 
 - 官方仓库：https://github.com/open-vela/contest2026_288_Bugyindudadui
 - 提交分支：`dev-ai-contest-2026`
-- 新功能源码基线：`79b565e814a5d8850edfbaa1a423a35be8eb92d7`（显示、触摸、桌面/锁屏、摄像头、跌倒监护、拍照识物）
+- 新功能源码基线：团队 fork 提交 `79b565e814a5d8850edfbaa1a423a35be8eb92d7`（显示、触摸、桌面/锁屏、摄像头、跌倒监护、拍照识物）。官方仓以 Rebase and merge 方式合入，提交号不同、源码内容一致，可用自建 Skill 按内容摘要校验（`app/`、`board/contest_board/`、`tools/` 下 254 个非文档文件，摘要 `7698ec765f6f2f18…`）
 - P0 板级验收基线：`35a953cc3673c0329b6a8de569604d492e1b64f0`（2026-09-17 最终复现）
 - 目标开发板：ESP32-P4X-Function-EV-Board V1.6，实测芯片 ESP32-P4 revision v3.2
 - 外设：官方 7 英寸 1024×600 MIPI-DSI 触摸屏（EK79007 + GT911）、SC2336 MIPI-CSI 摄像头模组
@@ -173,7 +173,7 @@ cd contest2026_288_Bugyindudadui
 python3 .claude/skills/esp32p4-repro-check/scripts/check_baseline.py --repo .
 ```
 
-默认 `final` 档位检查 11 项：功能基线与 tree、必需文件、固件与主机工具相对基线未改动、三项 manifest 映射、配置契约、设备与入口 token、凭据不入源码、`esp_lcd` 官方源码可逆校验（19/19）和已存证据哈希。期望输出 `Summary: PASS=11 FAIL=0 RESULT=PASS`。`--profile p0` 用于复核 2026-09-17 的 P0 基线。
+默认 `final` 档位检查 10 项：源码内容摘要（上述 254 个文件须与 fork 提交 `79b565e` 的源码一致；是否包含该提交只作说明，因此在团队 fork 和官方仓上结果相同）、这三个目录无未提交改动、必需文件、三项 manifest 映射、配置契约、设备与入口 token、凭据不入源码、`esp_lcd` 官方源码可逆校验（19/19），以及两份已存证据的哈希。期望输出 `Summary: PASS=10 FAIL=0 RESULT=PASS`。`--profile p0` 用于复核 2026-09-17 的 P0 基线（按提交 `35a953c` 与其 tree 校验）。
 
 ### 主机测试
 

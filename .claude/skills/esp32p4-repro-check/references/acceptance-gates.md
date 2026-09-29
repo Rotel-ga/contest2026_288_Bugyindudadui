@@ -6,12 +6,12 @@ Use this reference when executing or reviewing a reproduction run. Paths are rel
 
 Run `scripts/check_baseline.py` first and stop on any failure.
 
-| Profile | Commit | Tree | Scope |
-| --- | --- | --- | --- |
-| `final` (default) | `79b565e814a5d8850edfbaa1a423a35be8eb92d7` | `1c574b39baa21787d5ca2eb2baa535db462f6c14` | complete work, seven configurations |
-| `p0` | `35a953cc3673c0329b6a8de569604d492e1b64f0` | `0598b69891e19663a0ba3f559f03293746bc7974` | 2026-09-17 bring-up, four configurations |
+| Profile | Identity check | Scope |
+| --- | --- | --- |
+| `final` (default) | source digest `7698ec765f6f2f18fbd9a40014c4a57a5bf7cb36be3d4385a1600fdd90c613b3` over 254 committed files | complete work, seven configurations |
+| `p0` | commit `35a953cc3673c0329b6a8de569604d492e1b64f0` is an ancestor of `HEAD`, tree `0598b69891e19663a0ba3f559f03293746bc7974` | 2026-09-17 bring-up, four configurations |
 
-The baseline may be an ancestor of a later documentation/Skill/manifest commit, but for `final` everything under `app/`, `board/contest_board/` and `tools/` except `*.md` must be byte-for-byte unchanged from it. Do not use a branch name as a substitute for commit verification.
+The `final` digest is SHA-256 over the sorted `mode blob path` lines that `git ls-tree -r HEAD` lists for `app/`, `board/contest_board/` and `tools/`, skipping `*.md` and `.built`. It equals the sources of team-fork commit `79b565e814a5d8850edfbaa1a423a35be8eb92d7` (tree `1c574b39baa21787d5ca2eb2baa535db462f6c14`). The digest does not depend on commit IDs, so it gives the same answer on the team fork, after the official "Rebase and merge" (new commit IDs, identical files) and after a squash; whether `79b565e` is an ancestor is only reported. Documentation, Skill and manifest commits leave it unchanged, a committed edit to any firmware or host-tool file changes it, and uncommitted or untracked files in those directories fail a separate check. Do not use a branch name or a commit title as a substitute for this check.
 
 Required manifest mappings:
 
@@ -36,7 +36,7 @@ build.sh vendor/openvela/boards/contest2026_288_board/configs/<config>
 
 Require the real build exit status 0, `Generated: nuttx.bin`, a non-empty `nuttx/nuttx.bin`, and saved size and SHA-256. Do not trust a wrapper or `tee` exit status without `pipefail`/`PIPESTATUS[0]`. Images embed build time and path, so SHA-256 differs between builds; compare size and identify the running image with `uname -a`.
 
-Reference sizes on `79b565e` (2026-09-29):
+Reference sizes, built on 2026-09-29 from `79b565e` (the sources of the `final` digest):
 
 | Config | Purpose | `nuttx.bin` |
 | --- | --- | ---: |
