@@ -3,5 +3,7 @@ if(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST)
   nuttx_add_application(
     NAME p4x_selftest
     SRCS p4x_selftest_main.c p4x_camera_capture.c p4x_camera_csi.c jpeg_sw.c
-    STACKSIZE 8192)
+    STACKSIZE 8192
+    INCLUDE_DIRECTORIES
+      ${NUTTX_DIR}/arch/risc-v/src/chip/espressif)
 endif()

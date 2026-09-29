@@ -65,3 +65,26 @@ LDELFFLAGS += -melf32lriscv
 # esp_gpio_reserve.c) are provided by NuttX's C implementation
 # (libs/libc/machine/arch_atomic.c), enabled via CONFIG_LIBC_ATOMIC_IRQ in the
 # defconfig, since the riscv-none-elf toolchain ships no libatomic.
+
+ifeq ($(CONFIG_ESP32P4_QUICKAPP_PREBUILT),y)
+QUICKAPP_LIBS := $(wildcard $(BOARD_DIR)/prebuilt/quickapp-rv32/*.a)
+ifeq ($(wildcard $(BOARD_DIR)/prebuilt/quickapp-rv32/libapps_vapp.a),)
+$(error Quick App binary bundle is missing; see prebuilt/quickapp-rv32/README.md)
+endif
+ifeq ($(CONFIG_ESP32P4_QUICKAPP_FALLGUARD),y)
+QUICKAPP_LIBS := $(wildcard $(BOARD_DIR)/prebuilt/fallguard-abi/*.a)
+endif
+EXTRA_LIBS += $(QUICKAPP_LIBS)
+ifeq ($(CONFIG_ESP32P4_DESKTOP),y)
+# Experimental combination link: the prebuilt Quick App GUI archive carries
+# its own LVGL objects.  Permit duplicate common LVGL symbols so the public
+# desktop LVGL remains the first definition while Quick App-only extensions
+# can satisfy the prebuilt GUI wrapper.
+LDFLAGS += -z muldefs
+endif
+ifeq ($(CONFIG_ESP32P4_QUICKAPP_FALLGUARD),y)
+EXTRA_LIBS += $(BOARD_DIR)/prebuilt/fallguard-resources/libqa_resources.a
+else
+EXTRA_LIBS += $(BOARD_DIR)/prebuilt/quickapp-resources/libqa_resources.a
+endif
+endif

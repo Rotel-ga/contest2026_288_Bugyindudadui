@@ -50,4 +50,12 @@ extern uart_dev_t g_uart_usbserial;
 
 void esp_usbserial_write(char ch);
 
+/* Task-only, single-owner frame transport.  Ordinary logs are suppressed
+ * until frame_end; writes fail after 2 seconds without host progress.
+ */
+
+int esp_usbserial_frame_begin(void);
+int esp_usbserial_frame_write(const char *data, size_t len);
+void esp_usbserial_frame_end(void);
+
 #endif /* __ARCH_RISCV_SRC_COMMON_ESPRESSIF_ESP_USBSERIAL_H */

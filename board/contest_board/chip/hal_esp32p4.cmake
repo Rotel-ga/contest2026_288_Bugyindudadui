@@ -445,31 +445,8 @@ list(
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_ana_cmpr/ana_cmpr.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/esp_dma_utils.c
   ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_dma/dw_gdma_hal.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/cam_hal.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/mipi_csi_hal.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/mipi_csi_periph.c
   ${ESP_HAL_3RDPARTY_REPO}/components/hal/color_hal.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/dw_gdma.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hw_support/mipi_csi_share_hw_ctrl.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/esp_cam_ctlr.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ae.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_af.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_awb.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_bf.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_blc.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ccm.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_color.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_core.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_crop.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_demosaic.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_gamma.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_hist.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_lsc.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_sharpen.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_wbg.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/isp_hal.c
-  ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/isp_periph.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/gdma_link.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_dma/src/gdma.c
   ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_gpio/src/gpio.c
@@ -568,6 +545,48 @@ if(CONFIG_ESPRESSIF_IDF_ENV_FPGA)
        ${ESP_HAL_3RDPARTY_REPO}/components/esp_system/fpga_overrides_rng.c)
   target_link_options(nuttx PRIVATE -u esp_common_include_fpga_overrides_clk -u
                       esp_common_include_fpga_overrides_rng)
+endif()
+
+if(CONFIG_ESP32P4_BOARD_LCD)
+  target_include_directories(arch PRIVATE ${CMAKE_CURRENT_LIST_DIR}/esp_lcd)
+  list(APPEND HAL_SRCS
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_mipi_dsi_bus.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_io_dbi.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_dpi.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_ek79007.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_ops.c
+    ${CMAKE_CURRENT_LIST_DIR}/esp_lcd/esp_lcd_panel_io.c
+  )
+endif()
+
+
+if(CONFIG_LVX_USE_DEMO_CONTEST2026_288_P4X_SELFTEST)
+  list(APPEND HAL_SRCS ${CMAKE_CURRENT_LIST_DIR}/freertos_compat/freertos_compat.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/cam_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/mipi_csi_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/mipi_csi_periph.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hw_support/mipi_csi_share_hw_ctrl.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/esp_cam_ctlr.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_cam/csi/src/esp_cam_ctlr_csi.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ae.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_af.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_awb.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_bf.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_blc.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_ccm.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_color.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_core.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_crop.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_demosaic.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_gamma.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_hist.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_lsc.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_sharpen.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/upper_hal_isp/src/isp_wbg.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/isp_hal.c
+    ${ESP_HAL_3RDPARTY_REPO}/components/esp_hal_cam/${CHIP_SERIES}/isp_periph.c
+  )
+  target_include_directories(arch PRIVATE ${CMAKE_CURRENT_LIST_DIR}/freertos_compat/include)
 endif()
 
 target_sources(arch PRIVATE ${HAL_SRCS})

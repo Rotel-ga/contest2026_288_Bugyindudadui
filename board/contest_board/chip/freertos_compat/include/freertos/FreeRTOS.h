@@ -7,18 +7,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/irq.h>
 #include <nuttx/spinlock.h>
 
-#ifndef CONFIG_SCHED_TICK_HZ
-#  define CONFIG_SCHED_TICK_HZ 100
-#endif
-
-#ifndef portTICK_PERIOD_MS
-#  define portTICK_PERIOD_MS (1000 / CONFIG_SCHED_TICK_HZ)
-#endif
-#define pdMS_TO_TICKS(ms)  ((TickType_t)(((uint64_t)(ms) + portTICK_PERIOD_MS - 1) / portTICK_PERIOD_MS))
+#define portTICK_PERIOD_MS (CONFIG_USEC_PER_TICK / 1000)
+#define pdMS_TO_TICKS(ms) ((TickType_t)MSEC2TICK(ms))
 #ifndef portMAX_DELAY
 #  define portMAX_DELAY 0xfffffffful
 #endif
@@ -59,33 +55,45 @@ typedef int32_t BaseType_t;
 typedef void *TaskHandle_t;
 typedef void *SemaphoreHandle_t;
 
-#ifndef ESP_FREERTOS_COMPAT_PORTMUX_DEFINED
-#  define ESP_FREERTOS_COMPAT_PORTMUX_DEFINED 1
-typedef struct portmux_compat_s
+/* Recursive IRQ-safe critical sections, shared by task and ISR callers.
+ * Use the platform implementation rather than silently ignoring the lock.
+ */
+
+typedef struct
 {
+  rspinlock_t lock;
   irqstate_t flags;
 } portMUX_TYPE;
-#endif
 
 #ifndef portMUX_INITIALIZER_UNLOCKED
-#  define portMUX_INITIALIZER_UNLOCKED {}
+#  define portMUX_INITIALIZER_UNLOCKED {RSPINLOCK_INITIALIZER, 0}
 #endif
-#ifndef portENTER_CRITICAL
-#  define portENTER_CRITICAL(mux) \
-    do { (void)(mux); } while (0)
-#endif
-#ifndef portEXIT_CRITICAL
-#  define portEXIT_CRITICAL(mux) \
-    do { (void)(mux); } while (0)
-#endif
-#ifndef portENTER_CRITICAL_ISR
-#  define portENTER_CRITICAL_ISR(mux) portENTER_CRITICAL(mux)
-#endif
-#ifndef portEXIT_CRITICAL_ISR
-#  define portEXIT_CRITICAL_ISR(mux) portEXIT_CRITICAL(mux)
-#endif
-void portMUX_INITIALIZE(void *mux);
-void portYIELD_FROM_ISR(void);
+
+static inline void portMUX_INITIALIZE(portMUX_TYPE *mux)
+{
+  rspin_lock_init(&mux->lock);
+  mux->flags = 0;
+}
+
+static inline void port_enter_critical(portMUX_TYPE *mux)
+{
+  irqstate_t flags = rspin_lock_irqsave(&mux->lock);
+  if (mux->lock.count == 1)
+    {
+      mux->flags = flags;
+    }
+}
+
+static inline void port_exit_critical(portMUX_TYPE *mux)
+{
+  rspin_unlock_irqrestore(&mux->lock, mux->flags);
+}
+
+#define portENTER_CRITICAL(mux) port_enter_critical(mux)
+#define portEXIT_CRITICAL(mux) port_exit_critical(mux)
+#define portENTER_CRITICAL_ISR(mux) portENTER_CRITICAL(mux)
+#define portEXIT_CRITICAL_ISR(mux) portEXIT_CRITICAL(mux)
+#define portYIELD_FROM_ISR() do { } while (0)
 
 struct esp_freertos_queue_s;
 typedef struct esp_freertos_queue_s *QueueHandle_t;

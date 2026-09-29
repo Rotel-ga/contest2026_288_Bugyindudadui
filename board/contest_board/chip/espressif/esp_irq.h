@@ -181,6 +181,15 @@ int esp_setup_irq_with_flags_intrstatus(int source,
  *
  ****************************************************************************/
 
+/* Native HAL handlers run through riscv_doirq and the common demultiplexer.
+ * Each allocation returns its own ESP-IDF handle, even for a shared source.
+ */
+
+int esp_alloc_native_irq(int source, int flags, uint32_t statusreg,
+                         uint32_t statusmask, intr_handler_t handler,
+                         void *arg, intr_handle_t *handle);
+int esp_free_native_irq(intr_handle_t handle);
+
 void esp_teardown_irq(int source, int cpuint);
 
 /****************************************************************************

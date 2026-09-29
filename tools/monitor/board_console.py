@@ -10,7 +10,9 @@ can drive the same console in a loop.
 """
 
 import os
+import fcntl
 import re
+import select
 import subprocess
 import termios
 import time
@@ -65,6 +67,9 @@ class BoardConsole:
         self.port = port
         self.baud = baud
         self._fd = None
+        self.trace = None
+        self.progress = None
+        self.pace_handshake = False
 
     def __enter__(self):
         self.open()
@@ -76,6 +81,11 @@ class BoardConsole:
 
     def open(self):
         fd = os.open(self.port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(fd)
+            raise BoardBusy("串口正在被另一个监控/识物脚本占用，请先退出它")
         attr = termios.tcgetattr(fd)
         attr[0] = 0                                    # iflag
         attr[1] = 0                                    # oflag
@@ -103,14 +113,17 @@ class BoardConsole:
             try:
                 chunk = os.read(self._fd, 65536)
             except BlockingIOError:
-                time.sleep(0.03)
+                select.select([self._fd], [], [], max(0, min(0.1, end - time.time())))
                 continue
             except OSError:
                 break
             if chunk:
+                if self.trace:
+                    self.trace.write(chunk)
+                    self.trace.flush()
                 buf += chunk
             else:
-                time.sleep(0.03)
+                select.select([self._fd], [], [], max(0, min(0.1, end - time.time())))
         return buf
 
     def sync(self, seconds=1.0):
@@ -120,7 +133,11 @@ class BoardConsole:
 
     def _read_until(self, buf, done, end):
         """Append to ``buf`` until ``done(buf)`` holds or time.time() > end."""
+        next_progress = time.monotonic() + 5
         while not done(buf) and time.time() < end:
+            if self.progress and time.monotonic() >= next_progress:
+                self.progress(f"串口已接收 {len(buf)} 字节，仍在等待完成标记")
+                next_progress = time.monotonic() + 5
             try:
                 chunk = os.read(self._fd, 65536)
             except BlockingIOError:
@@ -128,9 +145,12 @@ class BoardConsole:
             except OSError:
                 break
             if chunk:
+                if self.trace:
+                    self.trace.write(chunk)
+                    self.trace.flush()
                 buf += chunk
             else:
-                time.sleep(0.03)
+                select.select([self._fd], [], [], max(0, min(0.1, end - time.time())))
         return buf
 
     def run_command(self, command, budget, done_markers, tail=2.0):
@@ -150,21 +170,73 @@ class BoardConsole:
         # echo first (its leading newline ends any stale half line) and the
         # command once its output shows NSH is idle.  The anchor is the output
         # line: the echoed input reads "echo @@...".
+        if self.progress:
+            self.progress("等待 NSH 握手回应")
         anchor = b"\n@@" + os.urandom(4).hex().encode()
-        os.write(self._fd, b"\necho " + anchor[1:] + b"\n")
+        handshake = b"\necho " + anchor[1:] + b"\n"
+        if self.pace_handshake:
+            # Opt-in for the independent object listener. Pace the handshake
+            # too, and handle nonblocking short writes before waiting for it.
+            for byte in handshake:
+                while True:
+                    try:
+                        if os.write(self._fd, bytes([byte])) == 1:
+                            break
+                    except BlockingIOError:
+                        pass
+                    if time.time() >= end:
+                        raise BoardBusy("发送 NSH 握手超时")
+                    select.select([], [self._fd], [], 0.01)
+                time.sleep(0.005)
+        else:
+            os.write(self._fd, handshake)
         buf = self._read_until(b"", lambda b: anchor in b, end)
         at = buf.find(anchor)
         if at < 0:
             raise BoardBusy(f"板子 {budget:.0f}s 内没有回到 nsh 提示符"
                             f"（上一条命令未结束或板子卡死，需复位）")
 
-        os.write(self._fd, line)
+        # echo output can precede readline's next prompt.  Wait for that
+        # prompt before feeding the next command into the small USB RX FIFO.
+        buf = self._read_until(
+            buf, lambda b: b"nsh> " in b[at + len(anchor):], end)
+        if b"nsh> " not in buf[at + len(anchor):]:
+            raise BoardBusy("收到 echo 回应，但没有收到下一条 NSH 提示符")
+        buf += self.drain(0.05)
+        if self.progress:
+            self.progress(f"NSH 握手成功，发送：{command}")
+        # Pace only the short command, never the image receive path.  Check
+        # write progress rather than assuming a nonblocking write is complete.
+        for byte in line:
+            while True:
+                try:
+                    if os.write(self._fd, bytes([byte])) == 1:
+                        break
+                except BlockingIOError:
+                    pass
+                if time.time() >= end:
+                    raise BoardBusy("发送采集命令超时")
+                select.select([], [self._fd], [], 0.01)
+            time.sleep(0.005)
         markers = tuple(m.encode() if isinstance(m, str) else m
                         for m in done_markers)
         buf = self._read_until(buf[at + len(anchor):],
                                lambda b: any(m in b for m in markers), end)
         if any(m in buf for m in markers):
             buf += self.drain(tail)
+        else:
+            # A host deadline does not cancel the foreground NSH command.
+            # Keep consuming data for a bounded recovery period so the USB
+            # writer can finish, or report an unresolved busy board clearly.
+            if self.progress:
+                self.progress("采集预算已到，继续接收最多 30 秒以等待命令结束")
+            buf = self._read_until(buf,
+                                   lambda b: any(m in b for m in markers),
+                                   time.time() + 30)
+            if any(m in buf for m in markers):
+                buf += self.drain(tail)
+            elif self.progress:
+                self.progress("恢复等待仍未收到完成标记；保留串口日志，板端状态未确认")
         return clean(buf)
 
 

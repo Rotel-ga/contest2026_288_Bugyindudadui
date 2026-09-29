@@ -11,6 +11,7 @@ monitor stays on the standard library, same as the rest of tools/.
 """
 
 import base64
+import binascii
 import re
 import struct
 import zlib
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 
 HEADER_RE = re.compile(r"thumb begin w=(\d+) h=(\d+) fmt=(\S+) bytes=(\d+)")
 FOOTER_RE = re.compile(r"thumb end sum32=0x([0-9a-fA-F]+)")
-PAYLOAD_RE = re.compile(r"THUMB:([A-Za-z0-9+/=]+)")
+PAYLOAD_RE = re.compile(r"^THUMB:([A-Za-z0-9+/=]+)[ \t]*\r?$", re.MULTILINE)
 
 # A real 160x90 scene has hundreds of distinct colours.  Below this the frame is
 # effectively a flat colour, which means the sensor is not producing an image
@@ -69,11 +70,17 @@ def parse(text):
     if width <= 0 or height <= 0 or nbytes != width * height * 2:
         raise ThumbError(f"inconsistent header: {width}x{height} bytes={nbytes}")
 
-    payload = "".join(PAYLOAD_RE.findall(text))
+    footer = FOOTER_RE.search(text, header.end())
+    if footer is None:
+        raise ThumbError("'thumb end' missing; capture cut short")
+    payload = "".join(PAYLOAD_RE.findall(text, header.end(), footer.start()))
     if not payload:
         raise ThumbError("header present but no THUMB: payload lines")
 
-    data = base64.b64decode(payload + "=" * (-len(payload) % 4))
+    try:
+        data = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ThumbError(f"payload is not valid base64: {error}") from error
     if len(data) != nbytes:
         # Usually one THUMB: line got cut by interleaved I2C trace output.
         raise ThumbError(f"payload truncated: {len(data)}/{nbytes} bytes")
@@ -87,7 +94,7 @@ def parse(text):
             raise ThumbError(f"checksum mismatch board=0x{want:08x} "
                              f"host=0x{got:08x}")
     else:
-        checksum = "missing"
+        raise ThumbError("'thumb end' missing; capture cut short")
 
     pixels = [data[i * 2] | (data[i * 2 + 1] << 8)
               for i in range(width * height)]

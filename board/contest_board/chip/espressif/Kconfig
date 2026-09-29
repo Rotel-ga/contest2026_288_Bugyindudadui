@@ -134,6 +134,92 @@ config ESPRESSIF_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY
 
 endif # ESPRESSIF_SPIRAM
 
+menuconfig ESP32P4_BOARD_LCD
+	bool "ESP32-P4 MIPI-DSI LCD (EK79007 1024x600)"
+	depends on ARCH_CHIP_ESP32P4 && VIDEO_FB
+	select ESPRESSIF_SPIRAM
+	select FB_UPDATE
+	default n
+	---help---
+		Enable the MIPI-DSI EK79007 1024x600 panel driver.  Brings up the
+		DSI PHY/host/bridge, sends the EK79007 initialisation sequence and
+		registers the framebuffer device /dev/fb0.  Requires external PSRAM
+		for the framebuffer (auto-selected).
+
+config ESP32P4_QUICKAPP_FALLGUARD
+	bool "Bundle fall guard Quick App test resources"
+	depends on ESP32P4_QUICKAPP_PREBUILT
+	default n
+
+config ESP32P4_QUICKAPP_PREBUILT
+	bool "Prebuilt RV32 Quick App runtime"
+	depends on ESP32P4_BOARD_LCD && BUILD_FLAT
+	select HAVE_CXXINITIALIZE
+	default n
+	help
+	  Link the binary runtime and its matching dependencies. Internal
+	  implementation sources and headers are not part of this board port.
+
+if ESP32P4_BOARD_LCD
+
+config ESP32P4_BOARD_LCD_COLORBAR
+	bool "Show DSI built-in colour-bar test pattern (bring-up)"
+	default n
+	---help---
+		For initial bring-up, drive the DSI host built-in colour-bar test
+		pattern instead of streaming the framebuffer.  This validates the
+		LDO/PHY/host/bridge/panel physical link without depending on the
+		DW-GDMA framebuffer path.  Disable once the colour bar is confirmed
+		on the panel to stream real /dev/fb0 content.
+
+config ESP32P4_BOARD_LCD_BOOT_TEST
+	bool "Run two RGBW framebuffer test cycles at boot"
+	default n
+	help
+	  Diagnostic only. Do not start a graphical application until the
+	  boot color test reports that the horizontal RGB image is restored.
+
+config ESP32P4_USB_CONSOLE_BEST_EFFORT
+	bool "Allow standalone boot without a USB console reader"
+	default n
+	help
+	  Bound USB console TX waits and discard output when the host is not
+	  reading. RX and the NSH console remain available.
+
+config ESP32P4_DESKTOP
+	bool "Desktop with swipe/PIN lock and persistent settings"
+	depends on GRAPHICS_LVGL
+	select ESP32P4_USB_CONSOLE_BEST_EFFORT
+	select ESP32P4_BOARD_TOUCH
+	select LV_USE_NUTTX_TOUCHSCREEN
+	select ESPRESSIF_SPIFLASH
+	select ESPRESSIF_MTD
+	select FS_LITTLEFS
+	select CRYPTO
+	default n
+
+config ESP32P4_BOARD_TOUCH
+	bool "GT911 polled touchscreen on official 7 inch adapter"
+	depends on ESPRESSIF_I2C1_MASTER_MODE
+	select INPUT
+	select INPUT_TOUCHSCREEN
+	default n
+
+config ESP32P4_LCD_REFRESH_TEST
+	bool "LVGL timed refresh verification application"
+	depends on GRAPHICS_LVGL
+	default n
+
+config ESP32P4_BOARD_LCD_RST_GPIO
+	int "Panel hardware reset GPIO (-1 if unused)"
+	default 27
+	---help---
+		GPIO number connected to the panel reset line.  On the
+		ESP32-P4X-Function-EV-Board 7" screen adapter this is GPIO27.
+		Set to -1 if the reset is not wired to a GPIO.
+
+endif # ESP32P4_BOARD_LCD
+
 config ESPRESSIF_IDF_ENV_FPGA
 	bool "IDF FPGA Environment"
 	default n
