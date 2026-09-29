@@ -1,0 +1,15 @@
+ESP32-P4X reproduction preflight
+repository=/home/mi/openvela-contest/contest2026_288_Bugyindudadui-phase2
+profile=final (complete work: display, touch, desktop/PIN lock, camera, fall monitor, photo identification)
+[PASS] baseline commit: expected=79b565e814a5d8850edfbaa1a423a35be8eb92d7 head=442658a63ce87299842a6e8366e5f706a411e0d9 ancestor=yes
+[PASS] baseline tree: expected=1c574b39baa21787d5ca2eb2baa535db462f6c14 actual=1c574b39baa21787d5ca2eb2baa535db462f6c14
+[PASS] required paths: all 36 present
+[PASS] firmware and host tools unchanged: no changes from expected baseline
+[PASS] manifest linkfiles: 3 expected mappings present
+[PASS] configuration contracts: desktop_camera=desktop+selftest; demo=i2c+camera; lcd/desktop display options
+[PASS] source contract: 24 device/entry-point tokens present
+[PASS] credentials from environment only: no API key or webhook token in app/board/tools sources
+[PASS] esp_lcd upstream provenance: reverse openvela.patch -> 19/19 upstream hashes
+[PASS] sha256 p4x_selftest_serial_raw.log: expected=dd13caebc28022cbf8d8de60d42d06254bf57fbf9bafa851ff611e3d41a968b7 actual=dd13caebc28022cbf8d8de60d42d06254bf57fbf9bafa851ff611e3d41a968b7
+[PASS] sha256 p4x_selftest_serial_report.json: expected=f7da8240d2aff8ccf2a89ad531d3609b18b211585b03619cd4cbd1cb26174b9e actual=f7da8240d2aff8ccf2a89ad531d3609b18b211585b03619cd4cbd1cb26174b9e
+Summary: PASS=11 FAIL=0 RESULT=PASS
