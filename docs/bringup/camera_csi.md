@@ -6,8 +6,9 @@
 - 开发板：ESP32-P4X-Function-EV-Board V1.6
 - 芯片：ESP32-P4 revision v3.2
 - 传感器：SC2336（MIPI-CSI 2 lane）
-- 配置：`board/contest_board/configs/demo/defconfig`
-- 命令：`p4x_selftest --camera-capture [<dig_fine> <dig_coarse> <ang>]`
+- 配置：`board/contest_board/configs/demo/defconfig`（最终作品 `desktop_camera` 使用同一套采集代码）
+- 命令：`p4x_selftest --camera-capture [<dig_fine> <dig_coarse> <ang>]`（RGB565 缩略图）、
+  `p4x_selftest --jpeg-capture [--no-awb] [<dig_fine> <dig_coarse> <ang>]`（整帧 JPEG）、`p4x_selftest --jpeg-selftest`
 
 ## 数据通路
 
@@ -15,11 +16,13 @@
 SC2336 --MIPI-CSI(2 lane, 336 Mbps/lane)--> CSI bridge
   --> ISP (RAW8 BGGR -> demosaic -> WBG 白平衡 -> RGB565)
   --> DW-GDMA --> PSRAM 帧缓冲 (1280x720x2 = 1.8 MB)
-  --> 板上 1/8 降采样 (160x90) --> base64 --> 串口
-  --> PC 端 tools/camera/decode_thumb.py --> PNG
+  --> --camera-capture：板上 1/2 盒式平均降采样 (640x360) --> base64 --> 串口
+      --jpeg-capture：  灰世界 AWB + 整数 DCT 基线 JPEG (1280x720) --> base64 --> 串口
+  --> PC 端 tools/camera/decode_thumb.py 或 tools/monitor/jpeg_frame.py --> PNG / JPG
 ```
 
-整帧 1.8 MB 留在 PSRAM 里，串口只送 160×90 的缩略图（28800 字节，约 3.7 秒）。
+整帧 1.8 MB 留在 PSRAM 里。`--camera-capture` 送 640×360 缩略图（460800 字节，约 7 秒）；
+`--jpeg-capture` 送整帧 JPEG（实测 113910–263942 字节，板端编码 1370–1450 ms），是跌倒监护的默认路径。
 本配置没有挂可写文件系统（`FS_TMPFS`/`FS_FAT`/`FS_ROMFS` 均关闭），所以整帧**无法落盘**，
 应用会打印 `frame not saved to ...; use the THUMB lines above instead` 并继续——这不是失败。
 要把整帧传出去必须先做以太网，见文末「后续工作」。
@@ -28,13 +31,13 @@ SC2336 --MIPI-CSI(2 lane, 336 Mbps/lane)--> CSI bridge
 
 硬件：SC2336 模组接到板上 MIPI-CSI 排线座；USB 线接 J20（USB Serial/JTAG）。
 
-配置：`demo/defconfig` 里与摄像头相关的四项，**都不要动**。
+配置：`demo/defconfig` 里与摄像头相关的几项：
 
-| 配置项 | 值 | 为什么需要 |
+| 配置项 | 值 | 说明 |
 | --- | --- | --- |
 | `CONFIG_ESPRESSIF_SPIRAM` | `y` | 1.8 MB 帧缓冲放不进内部 RAM |
 | `CONFIG_MM_REGIONS` | `2` | 否则 PSRAM 不进堆，`malloc` 拿不到 |
-| `CONFIG_I2C_TRACE` | `y` | **功能必需，不是调试残留**，详见「已知边界」第 1 条 |
+| `CONFIG_I2C_TRACE` | `y`（仅 `demo`） | 早期用来规避 I2C 命令字未初始化缺陷；根因已修复（见「已知边界」第 1 条），`desktop_camera` 不启用，`demo` 去掉前需真机回归 |
 | `CONFIG_ARCH_INTERRUPTSTACK` | `2048` | 默认值；曾怀疑不足并调到 8192，实测用量恒 468 字节，已回退 |
 
 ## 构建
@@ -66,7 +69,7 @@ PATH="$HOME/.local/bin:$PATH" ./build.sh \
 
 ```bash
 esptool --chip esp32p4 --port /dev/ttyACM0 --baud 921600 \
-  write-flash 0x2000 out/.../nuttx.bin
+  write-flash 0x2000 nuttx/nuttx.bin
 ```
 
 偏移固定 `0x2000`（Simple Boot）。成功判据是 `Hash of data verified.`。
@@ -109,7 +112,7 @@ camera_capture: verify summary mismatches=0
 camera_capture: gain 0x3e07 = 0x80 ...
 camera_capture: stage wbg r=184 g=153 b=256 ret=0
 camera_capture: frame px=921600 distinct=709 diff_from_first=921002 ...
-camera_capture: thumb begin w=160 h=90 fmt=rgb565le bytes=28800
+camera_capture: thumb begin w=640 h=360 fmt=rgb565le bytes=460800
 THUMB:<base64>            (每行 72 个 base64 字符)
 camera_capture: thumb end sum32=0x...
 camera_capture: PASS one frame output=...
@@ -126,7 +129,7 @@ tools/camera/decode_thumb.py out/camera/capture-20260924-153000.log
 
 | 文件 | 说明 |
 | --- | --- |
-| `thumb.rgb565` | 原始 RGB565 小端裸数据，160×90×2 = 28800 字节 |
+| `thumb.rgb565` | 原始 RGB565 小端裸数据，640×360×2 = 460800 字节 |
 | `thumb.png` | 直接转换的 PNG，所见即传感器所出 |
 | `thumb-stretched.png` | 每通道各自拉伸到满量程，便于看暗部结构 |
 
@@ -137,7 +140,7 @@ tools/camera/decode_thumb.py out/camera/capture-20260924-153000.log
 - `< 200` 有结构但层次偏少 ⇒ 可能欠曝，调增益
 - 否则合格
 
-实测参考值（室内桌面，三次不同采集）：
+实测参考值（2026-09-24，室内桌面，三次不同采集；当时缩略图为 160×90，现为 640×360，色数会更多）：
 
 | 采集 | 整帧 distinct | 缩略图 distinct |
 | --- | --- | --- |
@@ -214,18 +217,16 @@ tools/camera/calc_wb.py            # 读 out/camera/thumb.rgb565
 
 ## 已知边界
 
-以下四项是当前交付的真实边界，不要在材料里包装掉。
+以下几项是当前交付的真实边界，不要在材料里包装掉。
 
-1. **`CONFIG_I2C_TRACE=y` 是功能必需的，机制未解释。**
-   关掉它，166 条模式表写到 `0x3200` 就会失败（`errno=5`，控制器报 NACK）。
-   已经用有界二分把原因缩到这一项（先 `{DEBUG_FEATURES, I2C_TRACE}`，再 `{I2C_TRACE}`）。
-   三条替代方案**全部证伪**：把 SCCB 间隔加到 5 ms、中断栈加到 8192、
-   把 `esp_i2c.c` 的 `GET_STATUS()` 改成无条件。
-   已知 `SC2336_SCCB_GAP_US 5000` 的节流修好了**读**侧（verify mismatches 10→0），
-   但**写**侧为什么还依赖 trace，目前没有解释。
-   还没做的判别性实验：把 tracedump 改成只在失败时打印——仍正常说明必需的是 trace 的
-   *记录* 部分，再次失败说明必需的是打印带来的 *延时*。
-2. **没有 AWB / AE。** 白平衡是对某一个场景的静态拟合，换光源会失准；曝光也不自动。
+1. **`I2C_TRACE` 依赖已查明并修复。** 早期关掉 `CONFIG_I2C_TRACE`，166 条模式表写到中途就失败
+   （`errno=5`，控制器报 NACK），加延时、加大中断栈等替代方案都无效。根因是 `esp_i2c.c` 里
+   `esp_i2c_sendstart()` / `esp_i2c_startrecv()` 的 `i2c_ll_hw_cmd_t` 局部变量只赋了部分位域，
+   `ack_exp` / `ack_val` 残留栈上随机位；开 trace 只是改变了栈内容。提交 `6921f1e` 用指定初始化器清零全部字段，
+   同一缺陷也解释了触摸屏时好时坏的 NACK。`desktop_camera` 已不启用 `I2C_TRACE`，2026-09-29 12/12 次采集
+   读回 `mismatches=0`；`demo` 仍保留该项，去掉前需再做一次真机回归。
+2. **没有 AWB / AE。** ISP 白平衡是对某一个场景的静态拟合，换光源会失准；曝光也不自动。
+   `--jpeg-capture` 路径另有板端灰世界校正（`--no-awb` 可关）。
 3. **`ang` 取值约束是实测经验规律**，非手册推导，见上。
 4. **GPIO4 物理电平与 Timer 长稳未测**（缺外部夹具），与摄像头无关，但同属本作品的已知边界。
 
@@ -238,17 +239,15 @@ tools/camera/calc_wb.py            # 读 out/camera/thumb.rgb565
 | `distinct` 偏低、画面偏暗 | 抬 `dig_fine`（如 `0x80` → `0xc0`） |
 | 明显偏绿 | WBG 没生效：确认 `stage wbg ... ret=0`，且 `update_once_configured=1` |
 | `verify summary mismatches` 非 0 | SCCB 节流不足，确认 `SC2336_SCCB_GAP_US` 仍是 5000 |
-| 写表 `errno=5` | 检查 `CONFIG_I2C_TRACE=y` 是否被误删（见边界第 1 条） |
+| 写表 `errno=5` | 确认 `esp_i2c.c` 含命令字清零修复（`6921f1e`，见边界第 1 条）；`demo` 配置暂保留 `CONFIG_I2C_TRACE=y` |
 | `malloc` 失败 / 拿不到帧缓冲 | 确认 `CONFIG_MM_REGIONS=2` 与 `CONFIG_ESPRESSIF_SPIRAM=y` |
 | 解码报长度不符 | 某行 `THUMB:` 被其它输出打断，重新采集一次 |
 | 解码输出与上次完全一样 | 确认读的是本次的 log（脚本默认 `latest.log`，每次采集都会覆盖） |
 
 ## 后续工作
 
-- **以太网通道**：做图像识别的最大缺口。整帧 1.8 MB 走串口不现实，需要以太网。
-  注意 `board_emac_init()` 目前全树 0 个调用方、`configs/eth/defconfig` 也不存在，得从零搭。
-  串口 base64 传缩略图可以先作为演示过渡——已经这么做了，见
+- **以太网通道**：去掉 PC 桥接、提高帧率的关键。`board_emac_init()` 目前全树 0 个调用方、
+  `configs/eth/defconfig` 也不存在，得从零搭。当前方案是串口 base64 传整帧 JPEG，见
   [fall_alert.md](fall_alert.md)（定时采集 + 大模型跌倒判定 + 飞书告警）。
 - **AE / AWB**：当前是静态值，接入自动曝光和自动白平衡后才能适应变化的光照。
-- **`I2C_TRACE` 机制**：上面那个判别性实验成本很低（改 2 行、可 `git checkout` 退回），
-  做掉能把这条边界从"机制未解释"收成明确结论。
+- **`demo` 去掉 `I2C_TRACE`**：根因已修复，做一次 `--camera-capture` / `--jpeg-capture` 真机回归后即可删除。

@@ -18,6 +18,6 @@ python3 tools/photo_identify/identify_watch.py --port /dev/ttyACM0 --backend dir
 
 板端命令：pictl q 查询；pictl f <id> 读取快照；pictl b/c/e 分段回传文本。图片包含请求编号、长度和 sum32；结果包含长度、顺序偏移、sum32 和 UTF-8 检查。不是文件路径或任意命令执行接口。
 
-当前字库包含 GB2312 常用简体字符和页面文本。模型提示要求简体纯文本，罕见字、表情等仍可能缺字。真实模型识别、板上显示与相机并行稳定性需真机验证。
+当前字库包含 GB2312 常用简体字符和页面文本。模型提示要求简体纯文本，罕见字、表情等仍可能缺字。真机已完成真实模型识别并在板上显示结果；相机并行的长时间稳定性尚未做统计。
 
 识物生成额度默认 4096，可通过 `--max-completion-tokens 8192` 调整。该设置独立于跌倒脚本的 MIMO_MAX_COMPLETION_TOKENS；此前独立脚本写死 512 的问题已修复。finish_reason=length 时拒绝截断结果，提示增大额度；不自动重试产生额外模型请求。

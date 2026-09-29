@@ -2,6 +2,9 @@
 
 面向官方 1024×600 触摸屏的独立 LVGL 应用。默认滑动解锁；可在设置中
 切换无需锁屏、滑动、6 位 PIN。开机启动与串口共存，不依赖 Quick App。
+应用中心包含“跌倒监护”（[app/fallguard](../fallguard/README.md)）与“拍照识物”
+（[app/photo_identify](../photo_identify/README.md)），两者由本目录的 Makefile 一并编译；
+最终作品使用 `desktop_camera` 配置。
 
 ## 项目树
 
@@ -11,6 +14,8 @@ app/desktop/
 ├── Makefile / Make.defs      # NuttX 应用注册
 ├── desktop_main.c            # LVGL 生命周期、主循环和退出
 ├── desktop_boot.c            # 开机入口，初始化后启动桌面和 NSH
+├── fgctl_main.c              # NSH 命令 fgctl：跌倒监护面板与 PC 脚本的状态邮箱
+├── pictl_main.c              # NSH 命令 pictl：拍照识物的帧读取与结果回传
 ├── desktop.h                 # 模块接口与应用状态
 ├── core/
 │   └── settings.c            # 配置读写、PIN 校验与错误处理
@@ -27,8 +32,10 @@ app/desktop/
 ```
 
 板级配套单独位于 `board/contest_board/`：`configs/desktop/defconfig`、
-`tools/build_desktop.sh`、`src/esp32p4_desktop_storage.c`。驱动、挂载及
-Flash 区间不写进页面代码。显示和触摸沿用已验收的板级驱动。
+`configs/desktop_camera/defconfig`、`tools/build_desktop.sh`、`src/esp32p4_desktop_storage.c`、
+`src/esp32p4_touch.c`。驱动、挂载及 Flash 区间不写进页面代码。显示和触摸沿用已验收的板级驱动。
+本目录由 manifest 映射到 `packages/demos/contest2026_288_desktop`；缺少该映射时链接阶段会报
+`undefined reference to desktop_boot_main`。
 
 ## 行为与边界
 
@@ -41,10 +48,17 @@ Flash 区间不写进页面代码。显示和触摸沿用已验收的板级驱�
 
 ## 构建与运行
 
+按仓库根 README 的标准顺序构建（`distclean → prepare_esp_hal.sh → mbedTLS → build`），
+配置选 `desktop`（仅桌面）或 `desktop_camera`（最终作品）：
+
 ```bash
-cd /home/mi/Developer/openvela
-bash contest2026_288_Bugyindudadui/board/contest_board/tools/build_desktop.sh -j8
+cd /path/to/openvela
+PATH="$HOME/.local/bin:$PATH" ./build.sh \
+  vendor/openvela/boards/contest2026_288_board/configs/desktop_camera -j8
 ```
+
+`board/contest_board/tools/build_desktop.sh` 是 `desktop` 配置的便捷封装，使用前设置
+`OPENVELA_ROOT=/path/to/openvela`（脚本默认值是开发者本机路径）。
 
 桌面固件开机自动启动。退出后在 NSH 输入 `desktop` 再次启动。
 Flash 布局：固件从 `0x2000` 写入；桌面设置区为 `0xF80000` 起的
@@ -58,6 +72,9 @@ Flash 布局：固件从 `0x2000` 写入；桌面设置区为 `0xF80000` 起的
 （以仓库为当前目录）再编译。
 
 ## 当前状态（2026-09-24）
+
+> 2026-09-28 起应用中心接入跌倒监护与拍照识物，组合配置为 `desktop_camera`；以下为桌面阶段的验收记录。
+> 文中 `artifacts/...` 与镜像 SHA-256 指开发者本机归档，不在仓库内。
 
 **桌面、锁屏与设置第一版已实现并烧录；交互及关闭串口后的多次主板开关启动均获用户确认。**
 

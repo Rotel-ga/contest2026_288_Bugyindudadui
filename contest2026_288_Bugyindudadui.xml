@@ -10,6 +10,7 @@
 
   <project path="contest2026_288_Bugyindudadui" name="contest2026_288_Bugyindudadui">
     <linkfile src="app/p4x_selftest" dest="packages/demos/contest2026_288_p4x_selftest"/>
+    <linkfile src="app/desktop" dest="packages/demos/contest2026_288_desktop"/>
     <linkfile src="quickapp/hello_quickapp" dest="packages/apps/contest2026_288_hello_quickapp"/>
     <linkfile src="board/contest_board" dest="vendor/openvela/boards/contest2026_288_board"/>
   </project>
