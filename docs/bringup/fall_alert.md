@@ -1,7 +1,8 @@
 # 摄像头定时巡检 + 大模型跌倒判定 + 飞书告警
 
-本文记录 `tools/monitor/` 这条链路：板子每隔几秒采一帧，PC 把缩略图还原成 PNG 交给
-MiMo 视觉模型判断有没有人摔倒，判定为跌倒时向飞书群推一张告警卡片。
+本文记录 `tools/monitor/` 这条链路：板子每隔几秒采一帧，PC 把图像（默认板端 JPEG，也可用 RGB565 缩略图）
+交给 MiMo 视觉模型判断有没有人摔倒，判定为跌倒时向飞书群推一张告警卡片。最终作品使用 `desktop_camera` 固件，
+由跌倒监护页面的“开始 / 停止监控”按钮控制（`--panel-control`），见 [app/fallguard/README.md](../../app/fallguard/README.md)。
 
 摄像头本身怎么通起来、增益和白平衡怎么调，见 [camera_csi.md](camera_csi.md)，本文不重复。
 
@@ -18,15 +19,18 @@ python tools/monitor/fall_watch.py --backend direct --interval 10
 
 ```
 SC2336 --MIPI-CSI--> ISP --> PSRAM 整帧 1280x720 RGB565 (1.8 MB)
-  --> 板上 1/8 降采样 160x90 --> base64 --> USB 串口
+  --> --jpeg（推荐）：板端灰世界 AWB + 整数 DCT JPEG 1280x720（约 1.4 s，约 0.11–0.26 MB）
+      不加 --jpeg：板上 1/2 盒式平均 640x360 RGB565 缩略图
+  --> base64 --> USB 串口（传图期间 USB 帧传输会话独占发送通路，普通日志不插行）
   --> PC: tools/monitor/board_console.py 读回控制台文本
-  --> tools/monitor/thumb_image.py  base64 -> RGB565 -> PNG(可放大/拉伸)
-  --> tools/monitor/ai_client.py    PNG -> MiMo 视觉模型 -> {fall_detected,...}
+  --> tools/monitor/jpeg_frame.py / thumb_image.py  校验长度、sum32、SOI/EOI 并落盘
+  --> tools/monitor/ai_client.py    图像 -> MiMo 视觉模型 -> {fall_detected,...}
   --> 判定跌倒 --> 飞书自定义机器人 Webhook --> 群里的告警卡片
 ```
 
-**板上固件一行未改。** 循环靠 PC 反复下发已有的 `p4x_selftest --camera-capture`
-命令实现，所以这条链路不影响已经验证过的采集路径，也不需要重新烧录。
+每一轮由 PC 通过 NSH 下发 `p4x_selftest --jpeg-capture`（或 `--camera-capture`）完成采集；
+加 `--panel-control` 时，PC 先经 `fgctl` 等待面板“开始监控”，并把判定状态回传到面板。
+面板控制与照片显示只在包含桌面的 `desktop_camera` 固件里可用；`demo` 固件只支持命令行直接采集。
 
 ## 文件
 
@@ -102,8 +106,8 @@ alerts   : Feishu webhook
 
 | 路径 | 说明 |
 | --- | --- |
-| `frames/<时间戳>-<帧号>.png` | 送给模型的那张图，逐帧留档 |
-| `latest.png` | 最近一帧，固定名，方便外部预览 |
+| `frames/<时间戳>-<帧号>.jpg` / `.png` | 送给模型的那张图（`--jpeg` 为 JPEG，缩略图模式为 PNG），逐帧留档 |
+| `latest.jpg` / `latest.png` | 最近一帧，固定名，方便外部预览 |
 | `logs/<时间戳>-<帧号>.log` | 该帧的完整控制台会话，出问题时可直接喂给 `decode_thumb.py` |
 | `events.jsonl` | 每帧一行 JSON：判定、置信度、原因、模型原文、是否告警 |
 
@@ -113,8 +117,11 @@ alerts   : Feishu webhook
 
 | 参数 | 作用 |
 | --- | --- |
+| `--jpeg` | 让板子整帧编 JPEG（1280×720，板端 AWB）再传，推荐；不加时传 RGB565 缩略图 |
+| `--no-awb` | 关闭 JPEG 路径的板端灰世界白平衡 |
+| `--panel-control` | 等待面板“开始监控”并回传状态（需 `desktop_camera` 固件） |
 | `--interval 10` | 采集间隔秒数，从一轮开始算到下一轮开始 |
-| `--scale 4` | 送模型前的整数倍最近邻放大，默认 4（160×90 → 640×360） |
+| `--scale 4` | 缩略图模式下送模型前的整数倍最近邻放大 |
 | `--stretch` | 每通道拉伸到满量程，画面偏暗时用（采集路径没有自动曝光） |
 | `--gain 0x80 0x00 0x10` | 透传给 `p4x_selftest --camera-capture` 的 SC2336 增益 |
 | `--cooldown 60` | 两次告警之间的最小间隔，防止刷群 |
@@ -129,9 +136,12 @@ alerts   : Feishu webhook
 
 ## 时序：间隔不是想设多小就多小
 
-一轮的耗时下限由串口决定：28800 字节的缩略图按 base64 展开约 38400 字符，
-115200 baud 下光传输就要 **约 3.7 秒**，加上传感器初始化和 166 条模式表写入，
-实测一轮在 **10 秒量级**。`--interval` 小于一轮耗时时，脚本不会堆积任务，而是打印
+每一轮都要重新配置传感器（166 条模式表写入与读回，约 7 秒），再加编码和串口传输。
+2026-09-29 用 `desktop_camera` 固件、`--jpeg --backend direct` 实测 11 轮：采集+编码+传输约 10.2 秒
+（板端 JPEG 编码 1370–1450 ms，帧 113910–263942 字节），模型判定约 1–2 秒，单轮合计约 11–12 秒。
+缩略图模式（640×360 RGB565，460800 字节）串口传输本身约 7 秒，单轮更长。
+
+`--interval` 小于一轮耗时时，脚本不会堆积任务，而是打印
 `本轮耗时 …s，已超过 --interval …s，立即开始下一轮` 并接着跑——间隔实际退化为"尽快"。
 
 想真正做到每秒级，必须换掉传输层（以太网），见 camera_csi.md 的「后续工作」。
@@ -143,13 +153,13 @@ alerts   : Feishu webhook
 1. **判的是"有人躺在地上"，不是"摔倒的那一瞬间"。**
    每隔十几秒一帧的采样率下，跌倒过程几乎必然落在两帧之间。这套东西能可靠发现的是
    跌倒之后的**结果状态**。要检测动作本身需要连续视频，当前传输带宽不支持。
-2. **画面只有 160×90，并且没有 AE/AWB。** 模型拿到的是 1/8 降采样、静态白平衡、
-   固定曝光的图。人离得远、光线变化、逆光都会明显掉准确率。system prompt 里已经
-   把"分辨率低、可能偏暗偏色、辨认不清时必须判 false"写进去了，这是在用保守换误报少。
-3. **误报和漏报都没有量化。** 没有标注集，也没有跑过召回率/准确率，仓里只有单次
-   人工观察。不要对外声称任何准确率数字。
+2. **传感器没有 AE/AWB。** `--jpeg` 送整帧 1280×720（缩略图模式为 640×360），但曝光固定、
+   ISP 只有静态白平衡，JPEG 路径另做板端灰世界校正。人离得远、光线变化、逆光都会明显掉准确率。
+   system prompt 里已经写明"可能偏暗偏色、辨认不清时必须判 false"，这是在用保守换误报少。
+3. **误报和漏报都没有量化。** 没有标注集，也没有跑过召回率/准确率，仓里只有人工摆拍的
+   功能验证。不要对外声称任何准确率数字。
 4. **告警卡片里不带图。** 自定义机器人 Webhook 传不了图片（要上传图片得用应用凭据走
-   `im/v1/images`），所以卡片里给的是 PC 上那张 PNG 的本地路径。
+   `im/v1/images`），所以卡片里给的是 PC 上那张图的本地路径。
 5. **一个板子只能被一个进程占着。** `fall_watch.py` 跑起来后，`capture_camera.py`
    或串口终端再去开同一个设备会互相抢输出。
 
@@ -159,13 +169,13 @@ alerts   : Feishu webhook
 | --- | --- |
 | `no Espressif serial device found` | 设备没枚举出来或被别的程序占用，`--port /dev/ttyACM0` 显式指定 |
 | `capture timed out after 120s` | 板子没在跑 NSH，或固件不带 `p4x_selftest`；先手工敲一次命令确认 |
-| `payload truncated: N/28800 bytes` | 某行 `THUMB:` 被 I2C trace 打断，下一轮会自愈；频繁出现说明串口在丢数据 |
+| `payload truncated` / 长度不足 | 串口在丢数据或有日志插行：确认用的是本仓库构建的固件（USB 帧传输会话），`desktop_camera` 不要开 `I2C_TRACE`；偶发一次下一轮会重试 |
 | `near-constant frame (N colours)` | 传感器在出纯色，多半是 `ang` 增益落在低 3 位 `0b100` 的禁用值上 |
 | `checksum mismatch` | 串口传输出错，同上，偶发可忽略 |
 | `代理分析失败：MIMO_API_KEY is not set` | 代理进程没拿到 Key，注意 `export` 要在启动代理的那个终端里 |
 | `模型未按约定返回 JSON` | 模型没守格式；先看 `events.jsonl` 里的 `raw` 字段确认它究竟回了什么 |
 | `飞书拒绝消息：code=19024` | 机器人开了关键词校验但消息不含关键词，或 Webhook 填错 |
-| 一直判"正常"但人确实躺着 | 先看 `out/monitor/latest.png`：如果人眼都看不出，就是画质问题不是模型问题，加 `--stretch` 或调增益 |
+| 一直判"正常"但人确实躺着 | 先看 `out/monitor/latest.jpg`（缩略图模式为 `latest.png`）：如果人眼都看不出，就是画质问题不是模型问题，缩略图模式可加 `--stretch`，或调增益 |
 
 ## 后续工作
 

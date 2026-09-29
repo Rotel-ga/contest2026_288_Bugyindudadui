@@ -4,109 +4,115 @@ Use this reference when executing or reviewing a reproduction run. Paths are rel
 
 ## 1. Baseline gate
 
-Require all of the following before build or hardware work:
+Run `scripts/check_baseline.py` first and stop on any failure.
 
-- Commit: `35a953cc3673c0329b6a8de569604d492e1b64f0`
-- Tree: `0598b69891e19663a0ba3f559f03293746bc7974`
-- Four configs: `board/contest_board/configs/{nsh,uart0,i2c,demo}/defconfig`
-- App source: `app/p4x_selftest/p4x_selftest_main.c`
-- Board mapping: `board/contest_board` → `vendor/openvela/boards/contest2026_288_board`
-- App mapping: `app/p4x_selftest` → `packages/demos/contest2026_288_p4x_selftest`
+| Profile | Commit | Tree | Scope |
+| --- | --- | --- | --- |
+| `final` (default) | `79b565e814a5d8850edfbaa1a423a35be8eb92d7` | `1c574b39baa21787d5ca2eb2baa535db462f6c14` | complete work, seven configurations |
+| `p0` | `35a953cc3673c0329b6a8de569604d492e1b64f0` | `0598b69891e19663a0ba3f559f03293746bc7974` | 2026-09-17 bring-up, four configurations |
 
-The frozen commit may be an ancestor of a later documentation/Skill-only submission commit, but the BSP, selftest, manifest, and stored selftest evidence paths must be byte-for-byte unchanged from it.
+The baseline may be an ancestor of a later documentation/Skill/manifest commit, but for `final` everything under `app/`, `board/contest_board/` and `tools/` except `*.md` must be byte-for-byte unchanged from it. Do not use a branch name as a substitute for commit verification.
 
-Stop on any mismatch. Do not use a branch name as a substitute for commit verification.
+Required manifest mappings:
+
+| Source | Destination |
+| --- | --- |
+| `board/contest_board` | `vendor/openvela/boards/contest2026_288_board` |
+| `app/p4x_selftest` | `packages/demos/contest2026_288_p4x_selftest` |
+| `app/desktop` | `packages/demos/contest2026_288_desktop` |
 
 ## 2. Clean-build gate
 
 For every config, execute from the openvela workspace:
 
 ```text
-build.sh <config> distclean
-contest repo: prepare_esp_hal.sh
-contest repo: initialize components/mbedtls/mbedtls
-build.sh <config>
+build.sh vendor/openvela/boards/contest2026_288_board/configs/<config> distclean
+contest repo: bash board/contest_board/tools/prepare_esp_hal.sh
+contest repo: git -C board/contest_board/chip/esp-hal-3rdparty submodule update --init components/mbedtls/mbedtls
+build.sh vendor/openvela/boards/contest2026_288_board/configs/<config>
 ```
 
-Require:
+`distclean` deletes the ignored HAL checkout; a HAL left over from an older compatibility patch must be removed and prepared again, otherwise `prepare_esp_hal.sh` reports that the tree does not match.
 
-- Actual build process exit status 0
-- `Generated: nuttx.bin`
-- Non-empty `nuttx/nuttx.bin`
-- Saved image size and SHA-256
+Require the real build exit status 0, `Generated: nuttx.bin`, a non-empty `nuttx/nuttx.bin`, and saved size and SHA-256. Do not trust a wrapper or `tee` exit status without `pipefail`/`PIPESTATUS[0]`. Images embed build time and path, so SHA-256 differs between builds; compare size and identify the running image with `uname -a`.
 
-Do not trust a wrapper or `tee` exit status without `pipefail`/`PIPESTATUS[0]`.
+Reference sizes on `79b565e` (2026-09-29):
 
-## 3. Flash gate
+| Config | Purpose | `nuttx.bin` |
+| --- | --- | ---: |
+| `nsh` | J20 NSH, Timer, GPIO | 227956 |
+| `uart0` | physical UART0 console | 229492 |
+| `i2c` | I2C1 and i2ctool | 235572 |
+| `demo` | I2C1 + p4x_selftest camera capture and JPEG | 260508 |
+| `lcd` | MIPI-DSI display + LVGL demo | 600136 |
+| `desktop` | desktop, lock screen, settings, touch | 2819684 |
+| `desktop_camera` | final product: desktop + fall monitor + photo identification + camera | 2839456 |
 
-Use the J20 USB Serial/JTAG port selected from the current device enumeration.
+## 3. Host-test gate
 
-Require:
+From the contest repository:
 
-- `esptool --chip esp32p4 ... chip-id`
-- ESP32-P4 revision v3.2
-- Simple Boot write offset `0x2000`
-- `Hash of data verified.`
-
-A historical `/dev/ttyACM0` or `/dev/ttyACM2` is not a fixed port assignment.
-
-## 4. Console gates
-
-### J20
-
-For `nsh`, `i2c`, and `demo`, require a 115200 8N1 NuttX banner and `nsh>` on J20.
-
-### Physical UART0
-
-For `uart0`, require:
-
-- GPIO37/U0TXD → 3.3 V USB-UART RX
-- GPIO38/U0RXD → USB-UART TX
-- Common ground
-- No VCC connection
-- 115200 8N1 banner, NSH, and reboot recovery
-
-## 5. Functional gates
-
-### NSH and Timer
-
-Run `help`, `uname -a`, `free`, `ps`, `uptime`, and timed sleep/usleep commands. The verified path uses system time; do not claim `/dev/timer0`.
-
-### GPIO4
-
-Require `/dev/gpio0` low→high→low software readback and final low restore. Report external GPIO4 voltage separately; without a meter, LED, logic analyzer, or oscilloscope, mark the physical gate `SKIP`.
-
-### I2C1/ES8311
-
-Require `/dev/i2c1`, 100 kHz, and at least three complete scans in which the only detected 7-bit address is `0x18`. Do not write codec registers merely to prove bus access.
-
-### Selftest
-
-Run three human and three JSON invocations. With no physical GPIO fixture, require:
-
-```text
-PASS=4 FAIL=0 SKIP=1 RESULT=PASS
+```bash
+export ASAN_OPTIONS=detect_leaks=0
+for t in board/contest_board/tests/test_*.py tools/monitor/tests/test_*.py tools/photo_identify/tests/test_*.py; do
+  python3 "$t" || echo "FAIL $t"
+done
 ```
 
-Require JSON schema version 1, five typed test results, summary `4/0/1`, and result `PASS`.
+Require all 11 files to pass: shared IRQ ownership, USB frame transport, camera triple buffering, camera preview, identify bridge, panel mailbox, desktop font banks, plus 16 monitor and 6 photo-identify unit tests.
 
-### JTAG
+## 4. Flash gate
 
-Use Espressif `openocd-esp32`, J20 built-in USB-JTAG, and `board/esp32p4-builtin.cfg`. Require P4 target examination, revision v3.2, `reset halt`, state `halted`, and readable PC.
+Use the J20 USB Serial/JTAG port selected from the current enumeration (`python3 -m serial.tools.list_ports -v`). Require `esptool --chip esp32p4 ... chip-id`, ESP32-P4 revision v3.2, write offset `0x2000`, and `Hash of data verified.` Close every serial client before flashing.
 
-## 6. Evidence gate
+## 5. Console gates
 
-For each claim, record:
+- J20: 115200 8N1 NuttX banner and `nsh>` for all configurations except `uart0`. Desktop configurations print desktop logs on the same console; NSH remains usable.
+- Physical UART0 (`uart0`): GPIO37/U0TXD → USB-UART RX, GPIO38/U0RXD → USB-UART TX, common ground, no VCC, banner, NSH and reboot recovery.
 
-- Exact commit and multi-repository manifest
-- Command and true exit status
-- Raw log, including failures and truncations
-- Image size and SHA-256
-- Physical setup/photo/video reference when applicable
-- PASS/FAIL/SKIP and limitation
+## 6. P0 functional gates
 
-Historical evidence proves a capability was previously observed; it is not a post-merge run. Keep `35a953c` post-merge results separate.
+- NSH and Timer: `help`, `uname -a`, `free`, `ps`, `uptime`, timed `sleep`/`usleep`. The timer path uses system time; do not claim `/dev/timer0`.
+- GPIO4: `/dev/gpio0` low→high→low software readback and final low. External voltage is a separate gate; without instruments mark it `SKIP`.
+- I2C1/ES8311: `/dev/i2c1`, 100 kHz, three complete scans whose only address is `0x18` on the `i2c` config (the camera module answers at `0x30` and GT911 at `0x5D` when attached).
+- Selftest (`demo`): three human and three JSON runs; without a GPIO fixture require `PASS=4 FAIL=0 SKIP=1 RESULT=PASS`, JSON schema version 1.
+- JTAG: Espressif `openocd-esp32`, J20 built-in USB-JTAG, `board/esp32p4-builtin.cfg`; require target examination, `reset halt`, `halted`, readable PC.
 
-## 7. Claim boundary
+## 7. Display, touch and desktop gates
 
-Do not claim unsupported audio, I2S, recording, playback, amplifier, SPI2, display, camera, Wi-Fi/BLE, Secure Boot, Flash Encryption, eFuse programming, GPIO physical voltage, or completed 10+10 stability statistics without direct evidence.
+- `lcd`: `/dev/fb0` is 1024×600 RGB565; `lvgldemo widgets` shows changing LVGL widgets.
+- Touch: GT911 at `0x5D`; drags follow the finger (X and Y are mirrored in the driver).
+- `desktop` / `desktop_camera`: power-on shows the lock screen without an open serial monitor; swipe unlock, home, app center, settings and return work.
+- PIN: set a 6-digit PIN twice; a wrong PIN is rejected; five wrong entries lock input for 30 s; the correct PIN unlocks; the mode survives a reset; changing or disabling the PIN asks for the old PIN. Settings live in `/data/desktop/settings.bin` (LittleFS at `0xF80000`, 512 KiB).
+- Record visual results as user confirmation unless a log line proves them (`DESKTOP PAGE ...`, `DESKTOP swipe unlock`).
+
+## 8. Camera gates
+
+- `demo`: `p4x_selftest --camera-capture` and `p4x_selftest --jpeg-capture` report `verify summary mismatches=0`, `stage wait ret=0` and `PASS one frame`.
+- Decode on the host with `tools/camera/decode_thumb.py` or `tools/monitor/jpeg_frame.py`; a frame with only a few distinct colours is not a real image.
+- `desktop_camera`: the same capture must not disturb display refresh or touch.
+
+## 9. Fall-monitor gates (`desktop_camera`)
+
+1. Link test without the model or Feishu: `python3 tools/monitor/fall_watch.py --jpeg --once --dry-run --backend mock`.
+2. Panel control with the real model, no Feishu: `python3 tools/monitor/fall_watch.py --port /dev/ttyACM0 --panel-control --jpeg --backend direct --dry-run --interval 10 --capture-timeout 120`, then press “开始监控”.
+3. Alerts: export `FEISHU_WEBHOOK_URL` and drop `--dry-run`.
+
+Require validated JPEG frames in `out/monitor/frames/`, one `events.jsonl` line per round with `ok`, `fall_detected`, `confidence`, `reason`, `enc_ms`, and `alert` when a card was sent. Report per-round timing and verdicts; never report accuracy from staged rounds.
+
+## 10. Photo-identification gates (`desktop_camera`)
+
+1. Stop the fall monitor and exit its script first.
+2. Open 应用中心 → 拍照识物 and wait for the live preview.
+3. `python3 tools/photo_identify/identify_watch.py --port /dev/ttyACM0 --backend direct --command-timeout 30 --capture-timeout 120 --max-completion-tokens 4096` (use `--backend mock` for a link test).
+4. Press “拍照识别”; require the PNG in `out/photo_identify/frames/`, a result JSON in `out/photo_identify/logs/`, and the Chinese text in the result box.
+
+If the script reports an NSH handshake timeout, close other serial clients, keep the matching `*.session.serial.log`, and retry; do not reflash or rewrite drivers on the strength of a single session.
+
+## 11. Evidence gate
+
+For each claim, record the exact commit and multi-repository manifest, the command and its true exit status, the raw log including failures and truncations, image size and SHA-256, the physical setup or photo/video reference, PASS/FAIL/SKIP and the limitation. Historical evidence proves a capability was observed on its own baseline only.
+
+## 12. Claim boundary
+
+Do not claim without direct evidence: on-device AI inference, fall-detection accuracy, continuous-video fall detection, AE/AWB on the sensor, audio/I2S/recording/playback, SPI2, Wi-Fi/BLE or Ethernet, Secure Boot, Flash Encryption, eFuse programming, PIN-based storage encryption, GPIO physical voltage, CMake builds of the desktop configurations, or long-run stability statistics.

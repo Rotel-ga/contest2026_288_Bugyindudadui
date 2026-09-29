@@ -1,53 +1,62 @@
 ---
 name: esp32p4-repro-check
-description: Reproduce and audit the ESP32-P4X openvela contest board on the frozen official baseline. Use when asked to verify the contest commit, run the four clean-build configurations, flash the ESP32-P4 Simple Boot image, validate J20 or physical UART0, exercise GPIO/Timer/I2C/p4x_selftest/JTAG, or collect final submission evidence without overstating unsupported capabilities.
+description: Reproduce and audit the VelaP4X ESP32-P4X openvela contest work. Use when asked to verify the contest baseline, run the seven clean-build configurations (nsh, uart0, i2c, demo, lcd, desktop, desktop_camera), flash the ESP32-P4 Simple Boot image, validate J20 or physical UART0, exercise GPIO/Timer/I2C/p4x_selftest/JTAG, the MIPI-DSI display, GT911 touch, the desktop PIN lock screen, the SC2336 camera, the fall monitor or photo identification, or collect submission evidence without overstating unsupported capabilities.
 ---
 
 # ESP32-P4X reproduction check
 
-Reproduce the board from a verified source state and preserve evidence for every result. Treat build, flash, software-path, and physical-path checks as separate gates.
+Reproduce the board from a verified source state and preserve evidence for every result. Treat build, flash, software-path, physical-path and cloud-AI checks as separate gates.
 
 ## Start with the read-only preflight
 
 Run from the contest repository:
 
 ```bash
-python3 .claude/skills/esp32p4-repro-check/scripts/check_baseline.py \
-  --repo .
+python3 .claude/skills/esp32p4-repro-check/scripts/check_baseline.py --repo .
 ```
+
+The default `final` profile verifies the complete work:
+
+- functional source baseline `79b565e` is an ancestor of `HEAD` and its tree matches;
+- firmware and host tools (`app/`, `board/contest_board/`, `tools/`, documentation excluded) are unchanged since that baseline;
+- the three manifest mappings exist, including `app/desktop → packages/demos/contest2026_288_desktop`;
+- configuration contracts: `desktop_camera = desktop + selftest`, `demo = i2c + camera`, and `desktop_camera` does not enable `I2C_TRACE`;
+- 24 device and entry-point tokens (`/dev/gpio0`, `/dev/i2c1`, framebuffer, touch, `/data`, `fgctl`, `pictl`, PIN storage, IRQ and USB frame paths);
+- no API key or webhook token in `app/`, `board/contest_board/` or `tools/`;
+- official `esp_lcd` provenance: reversing `openvela.patch` on a temporary copy restores all 19 upstream hashes;
+- stored `p4x_selftest` evidence hashes.
+
+Expected result on a clean checkout: `Summary: PASS=11 FAIL=0 RESULT=PASS`.
+
+Use `--profile p0` only on a checkout of the 2026-09-17 bring-up period (four configurations, `demo = i2c + selftest`). On the final tree the `p0` profile reports the post-P0 BSP changes by design. Add `--json` for machine-readable output.
 
 Stop if any check fails. Do not repair a mismatch by resetting, cleaning, or changing branches without explicit user approval.
 
-For a machine-readable result, add `--json`. For an archived human-readable result:
-
-```bash
-python3 .claude/skills/esp32p4-repro-check/scripts/check_baseline.py \
-  --repo . | tee docs/bringup/esp32p4_repro_check_preflight.log
-```
-
 ## Follow the gated workflow
 
-1. **Verify identity.** Require the frozen baseline commit to be an ancestor of `HEAD`, its tree to match, protected BSP/selftest paths to remain unchanged from that commit, required source/config files, manifest link mappings, the `demo = i2c + selftest` invariant, and stored evidence hashes.
-2. **Record the environment.** Save `repo manifest -r`, repository status, tool versions, board revision, actual serial devices, and command lines.
-3. **Build one configuration at a time.** For each of `nsh`, `uart0`, `i2c`, and `demo`, run the project sequence exactly: `distclean → prepare_esp_hal.sh → mbedTLS submodule update → build`. Require both exit status 0 and `Generated: nuttx.bin`; archive image size and SHA-256.
-4. **Flash through J20.** Identify the current `/dev/ttyACMx`; never assume a historical device number. Require ESP32-P4 revision identification, offset `0x2000`, and `Hash of data verified.`
-5. **Validate the intended console.** Use J20 for `nsh`, `i2c`, and `demo`. Use crossed 3.3 V GPIO37/GPIO38 with common ground for `uart0`; do not connect USB-UART VCC.
-6. **Run functional gates.** Exercise NSH/Timer/GPIO, three complete I2C scans for 7-bit address `0x18`, three human and three JSON selftest runs, and Espressif OpenOCD reset/halt.
-7. **Separate evidence classes.** Report GPIO software readback independently from physical pin voltage. Mark unavailable physical instrumentation as `SKIP`, not `PASS`.
-8. **Close with an evidence matrix.** Record command, status, raw log, image hash, photo/video reference, limitation, and baseline for each claim.
+1. **Verify identity** with the preflight above.
+2. **Record the environment.** Save `repo manifest -r`, repository status, tool versions, board revision, actual serial devices and command lines.
+3. **Build one configuration at a time.** For each of `nsh`, `uart0`, `i2c`, `demo`, `lcd`, `desktop`, `desktop_camera`, run `distclean → prepare_esp_hal.sh → mbedTLS submodule update → build`. Require exit status 0 and `Generated: nuttx.bin`; archive image size and SHA-256. `desktop` and `desktop_camera` need the `app/desktop` manifest link; without it the link step fails on `desktop_boot_main`.
+4. **Run the host tests** (`board/contest_board/tests/*.py`, `tools/monitor/tests/*.py`, `tools/photo_identify/tests/*.py`) with `ASAN_OPTIONS=detect_leaks=0`; require all 11 files to pass.
+5. **Flash through J20.** Identify the current `/dev/ttyACMx`; never assume a historical device number. Require ESP32-P4 revision identification, offset `0x2000`, and `Hash of data verified.` The desktop settings partition at `0xF80000` is outside the image; never erase it without the owner's approval.
+6. **Validate the intended console.** J20 for everything except `uart0`; crossed 3.3 V GPIO37/GPIO38 with common ground for `uart0`, never USB-UART VCC.
+7. **Run functional gates** from [references/acceptance-gates.md](references/acceptance-gates.md): P0 (NSH/Timer/GPIO/I2C/selftest/JTAG), display and touch, desktop and PIN lock, camera, fall monitor, photo identification.
+8. **Separate evidence classes.** GPIO software readback is not pin voltage; a mock model response is not a recognition result; user visual confirmation is recorded as such, with the count only when it was counted.
+9. **Close with an evidence matrix.** Record command, status, raw log, image hash, photo/video reference, limitation and baseline for each claim.
 
-Read [references/acceptance-gates.md](references/acceptance-gates.md) before build/flash work or when deciding PASS, FAIL, and SKIP.
+Read [references/acceptance-gates.md](references/acceptance-gates.md) before build, flash or AI work, and when deciding PASS, FAIL and SKIP.
 
 ## Preserve safety and truthfulness
 
 - Never write eFuse, Secure Boot keys, Flash Encryption keys, or real secrets.
-- Never infer board wiring from generic Kconfig defaults.
-- Never call an I2C acknowledge or one-byte read complete audio support.
-- Never call software GPIO readback external voltage evidence.
-- Never claim `/dev/timer0`; the verified timer path uses system time.
-- Never convert a historical log into a post-merge result.
-- Keep failed and truncated logs; exclude them from successful-run counts without deleting them.
-- Stop feature expansion during final submission work. Limit changes to evidence, documentation, and submission blockers.
+- Keep `MIMO_API_KEY` and `FEISHU_WEBHOOK_URL` in the environment only; never write them to files, logs, commits or chat.
+- Never claim on-device AI inference: the board captures and encodes, the PC scripts call the MiMo model in the cloud.
+- Never claim fall-detection accuracy, false-positive or false-negative rates without a labelled dataset; staged runs are functional evidence only.
+- Never describe the PIN lock as encryption, Secure Boot or serial-console protection; it is a UI access limit.
+- Run one serial client at a time: `fall_watch.py`, `identify_watch.py` and serial terminals share the J20 port, and opening the port may reset the board.
+- Keep `I2C_TRACE` disabled in `desktop_camera`; its records corrupt image frames on the USB console.
+- Never infer board wiring from generic Kconfig defaults; never call an I2C acknowledge complete audio support; never claim `/dev/timer0`.
+- Never convert a historical log into a result for a later baseline. Keep failed and truncated logs; exclude them from success counts without deleting them.
 
 ## Report the outcome
 
@@ -60,5 +69,5 @@ Gate | Baseline | Command or action | Result | Evidence | Limitation
 End with three explicit lists:
 
 - `PASSED`: directly verified on the stated baseline.
-- `SKIPPED/PENDING`: not executed or lacking physical equipment.
+- `SKIPPED/PENDING`: not executed, lacking equipment, or only user-confirmed without a log.
 - `FAILED`: executed and failed, including the first decisive error.
